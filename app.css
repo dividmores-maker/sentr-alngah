@@ -424,3 +424,14 @@ a{ text-decoration:none; }
 .upload-placeholder b{ color: var(--teal-deep); display:block; margin-bottom:6px; font-family:'Cairo',sans-serif; }
 
 
+
+/* ===================== Sidebar Overlay ===================== */
+.sidebar-overlay{
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(0,0,0,.45);
+  /* NO backdrop-filter - بيسبب مشاكل على الموبايل */
+}
+.sidebar-overlay.open{ display: block; }
