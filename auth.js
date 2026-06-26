@@ -117,7 +117,12 @@ function requireAuth(callback, requiredRole) {
   const isAdminPage = window.location.pathname.includes('admin');
   const loginPage = isAdminPage ? "admin-login.html" : "index.html";
 
+  // منع أي redirect قبل ما Firebase يرجع الـ auth state الحقيقي
+  let resolved = false;
+
   auth.onAuthStateChanged(async (user) => {
+    resolved = true;
+
     if (!user) {
       window.location.href = loginPage;
       return;
@@ -133,6 +138,13 @@ function requireAuth(callback, requiredRole) {
     }
     callback(user, profile);
   });
+
+  // لو Firebase اتأخر أكتر من 8 ثواني من غير ما يرجع state -> روح للـ login
+  setTimeout(() => {
+    if (!resolved) {
+      window.location.href = loginPage;
+    }
+  }, 8000);
 }
 
 /**
