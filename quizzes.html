@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الاختبارات - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  .quiz-card{
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 22px; display:flex; align-items:center; gap:18px;
+  }
+  .quiz-card .thumb{
+    width:54px; height:54px; border-radius:14px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; color:#fff;
+    background: linear-gradient(135deg, var(--coral), var(--coral-deep, #B8492F));
+  }
+  .quiz-card .body{ flex:1; min-width:0; }
+  .quiz-card h3{ font-size:15.5px; color: var(--teal-deep); font-weight:800; margin-bottom:4px; }
+  .quiz-card p{ font-size:12.5px; color: var(--ink-soft); }
+  .quiz-card .done-badge{ background: rgba(31,111,92,.1); color: var(--teal-deep); }
+
+  /* Quiz runner */
+  .quiz-runner{ background: var(--card); border:1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+  .quiz-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 22px; flex-wrap:wrap; gap:10px; }
+  .quiz-head h2{ font-size:20px; color: var(--teal-deep); font-weight:900; }
+  .progress-pill{
+    font-size:13px; font-weight:700; color: var(--teal-deep);
+    background: var(--bg-soft); padding:7px 16px; border-radius:999px;
+  }
+
+  .question-block{ margin-bottom: 26px; }
+  .question-block .q-title{ font-size:15.5px; font-weight:800; color: var(--ink); margin-bottom: 14px; line-height:1.8; }
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .option{
+    display:flex; align-items:center; gap:12px;
+    padding: 13px 16px; border-radius:12px;
+    border: 1.5px solid var(--line); cursor:pointer;
+    transition: all .2s; font-size:14px;
+  }
+  .option:hover{ background: var(--bg-soft); }
+  .option.selected{ border-color: var(--teal); background: rgba(31,111,92,.06); }
+  .option input{ accent-color: var(--teal); width:18px; height:18px; }
+
+  /* Result */
+  .result-box{ text-align:center; padding: 30px 10px; }
+  .result-box .score-circle{
+    width:120px; height:120px; border-radius:50%;
+    margin: 0 auto 20px;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+    background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+    color:#fff;
+  }
+  .result-box .score-circle b{ font-size:30px; font-family:'Cairo',sans-serif; }
+  .result-box .score-circle span{ font-size:12px; opacity:.85; }
+  .result-box h2{ font-size:20px; color: var(--teal-deep); margin-bottom:8px; }
+  .result-box p{ font-size:14px; color: var(--ink-soft); margin-bottom: 22px; }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">ن</div>
+      مركز النجاح
+    </div>
+    <a class="nav-item" href="dashboard.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item active" href="quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="profile.html"><span class="ic">👤</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>الاختبارات</h1>
+          <div class="page-sub">اختبر نفسك واعرف نتيجتك فورًا</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">🎓</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userGrade">...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="quizArea">
+        <div class="loading-state">جاري تحميل الاختبارات...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  let currentUser = null;
+  let currentProfile = null;
+  let quizzes = [];
+  let myResults = {};
+
+  requireAuth(async (user, profile)=>{
+    currentUser = user;
+    currentProfile = profile;
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('userGrade').textContent = profile.grade || '';
+    document.getElementById('avatarChip').textContent = profile.avatar || '🎓';
+
+    const params = new URLSearchParams(window.location.search);
+    const quizId = params.get('quiz');
+
+    await loadResults();
+    if(quizId){
+      loadAndRunQuiz(quizId);
+    } else {
+      loadQuizList();
+    }
+  });
+
+  async function loadResults(){
+    const snap = await db.collection('results').where('uid','==', currentUser.uid).get();
+    myResults = {};
+    snap.forEach(doc=>{
+      const d = doc.data();
+      myResults[d.quizId] = d;
+    });
+  }
+
+  async function loadQuizList(){
+    const area = document.getElementById('quizArea');
+    try{
+      if(!currentProfile.teacherId){
+        area.innerHTML = `<div class="empty-state"><div class="ic">👨‍🏫</div><h3>لم يتم تحديد المدرس لحسابك</h3><p>تواصل مع الإدارة لربط حسابك بالمدرس المناسب.</p></div>`;
+        return;
+      }
+      // هات كورسات مدرس الطالب المتاحة لصفه أولاً
+      const grades = currentProfile.grade ? [currentProfile.grade, 'جميع المراحل'] : ['جميع المراحل'];
+      const coursesSnap = await db.collection('courses')
+        .where('teacherId', '==', currentProfile.teacherId)
+        .where('grade', 'in', grades)
+        .get();
+      const courseIds = [];
+      coursesSnap.forEach(doc=> courseIds.push(doc.id));
+
+      quizzes = [];
+      if(courseIds.length > 0){
+        const snap = await db.collection('quizzes').where('courseId', 'in', courseIds.slice(0,30)).get();
+        snap.forEach(doc=> quizzes.push({ id: doc.id, ...doc.data() }));
+      }
+
+      if(quizzes.length === 0){
+        area.innerHTML = `<div class="empty-state"><div class="ic">📭</div><h3>لا توجد اختبارات لصفك مع ${currentProfile.teacherName || 'مدرسك'} حالياً</h3><p>الإدارة بتجهز الاختبارات، تابع معانا قريبًا.</p></div>`;
+        return;
+      }
+
+      area.innerHTML = '<div class="grid grid-2" id="quizGrid"></div>';
+      const grid = document.getElementById('quizGrid');
+      quizzes.forEach(q=>{
+        const result = myResults[q.id];
+        const qCount = (q.questions || []).length;
+        const card = document.createElement('div');
+        card.className = 'quiz-card';
+        card.innerHTML = `
+          <div class="thumb">📝</div>
+          <div class="body">
+            <h3>${q.title || 'اختبار'}</h3>
+            <p>${qCount} سؤال ${result ? '· تم الحل' : '· لم يتم الحل بعد'}</p>
+          </div>
+          ${result
+            ? `<span class="badge done-badge">${result.score}/${qCount}</span>`
+            : `<button class="btn btn-coral btn-sm">ابدأ</button>`}
+        `;
+        card.style.cursor = 'pointer';
+        card.onclick = ()=> loadAndRunQuiz(q.id);
+        grid.appendChild(card);
+      });
+    }catch(e){
+      area.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الاختبارات الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+
+  let activeQuiz = null;
+  let answers = {};
+
+  async function loadAndRunQuiz(quizId){
+    const area = document.getElementById('quizArea');
+    area.innerHTML = `<div class="loading-state">جاري تحميل الاختبار...</div>`;
+    try{
+      const doc = await db.collection('quizzes').doc(quizId).get();
+      if(!doc.exists){
+        area.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>الاختبار غير موجود</h3></div>`;
+        return;
+      }
+      activeQuiz = { id: doc.id, ...doc.data() };
+      answers = {};
+
+      const existing = myResults[quizId];
+      if(existing){
+        renderAlreadyDone(existing);
+        return;
+      }
+
+      renderQuiz();
+    }catch(e){
+      area.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الاختبار الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+
+  function renderAlreadyDone(result){
+    const area = document.getElementById('quizArea');
+    const total = (activeQuiz.questions || []).length;
+    area.innerHTML = `
+      <div class="quiz-runner">
+        <div class="result-box">
+          <div class="score-circle"><b>${result.score}/${total}</b><span>نتيجتك</span></div>
+          <h2>تم حل هذا الاختبار من قبل</h2>
+          <p>نتيجتك محفوظة في ملفك الشخصي.</p>
+          <button class="btn btn-ghost" onclick="loadQuizList()">رجوع لقائمة الاختبارات</button>
+        </div>
+      </div>`;
+  }
+
+  function renderQuiz(){
+    const area = document.getElementById('quizArea');
+    const questions = activeQuiz.questions || [];
+
+    let html = `
+      <div class="quiz-runner">
+        <div class="quiz-head">
+          <h2>${activeQuiz.title || 'اختبار'}</h2>
+          <span class="progress-pill">${questions.length} سؤال</span>
+        </div>`;
+
+    questions.forEach((q, qi)=>{
+      html += `<div class="question-block">
+        <div class="q-title">${qi+1}. ${q.text || ''}</div>
+        <div class="options">`;
+      (q.options || []).forEach((opt, oi)=>{
+        html += `
+          <label class="option" data-q="${qi}" data-o="${oi}">
+            <input type="radio" name="q${qi}" value="${oi}" onchange="selectAnswer(${qi}, ${oi})">
+            <span>${opt}</span>
+          </label>`;
+      });
+      html += `</div></div>`;
+    });
+
+    html += `<button class="btn btn-solid" onclick="submitQuiz()" style="width:100%; padding:15px 0; font-size:15px;">إنهاء وعرض النتيجة</button></div>`;
+    area.innerHTML = html;
+  }
+
+  function selectAnswer(qIndex, oIndex){
+    answers[qIndex] = oIndex;
+    document.querySelectorAll(`.option[data-q="${qIndex}"]`).forEach(el=>{
+      el.classList.toggle('selected', parseInt(el.dataset.o) === oIndex);
+    });
+  }
+
+  async function submitQuiz(){
+    const questions = activeQuiz.questions || [];
+    let score = 0;
+    questions.forEach((q, qi)=>{
+      if(answers[qi] !== undefined && answers[qi] === q.correct){
+        score++;
+      }
+    });
+
+    try{
+      const resultId = currentUser.uid + '_' + activeQuiz.id;
+      await db.collection('results').doc(resultId).set({
+        uid: currentUser.uid,
+        quizId: activeQuiz.id,
+        quizTitle: activeQuiz.title || '',
+        score: score,
+        total: questions.length,
+        answers: answers,
+        date: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      myResults[activeQuiz.id] = { score, total: questions.length };
+      renderResult(score, questions.length);
+    }catch(e){
+      alert('حدث خطأ أثناء حفظ النتيجة، حاول مرة أخرى.');
+      console.error(e);
+    }
+  }
+
+  function renderResult(score, total){
+    const area = document.getElementById('quizArea');
+    const pct = total > 0 ? Math.round((score/total)*100) : 0;
+    let msg = 'محاولة جيدة، استمر في المذاكرة!';
+    if(pct >= 90) msg = 'ممتاز! أداء رائع 🎉';
+    else if(pct >= 70) msg = 'جيد جدًا، استمر كذلك!';
+    else if(pct < 50) msg = 'راجع الدرس وحاول مرة أخرى في المرة الجاية.';
+
+    area.innerHTML = `
+      <div class="quiz-runner">
+        <div class="result-box">
+          <div class="score-circle"><b>${score}/${total}</b><span>نتيجتك (${pct}%)</span></div>
+          <h2>تم تسجيل نتيجتك بنجاح</h2>
+          <p>${msg}</p>
+          <button class="btn btn-ghost" onclick="loadQuizList()">رجوع لقائمة الاختبارات</button>
+        </div>
+      </div>`;
+  }
+</script>
+
+</body>
+</html>

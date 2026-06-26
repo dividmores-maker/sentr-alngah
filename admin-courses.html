@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة الكورسات - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  .page-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+
+  .course-card{
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .course-thumb{
+    height: 90px; display:flex; align-items:center; justify-content:center;
+    font-size: 32px; color:#fff;
+    background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+  }
+  .course-body{ padding: 16px 18px; flex:1; display:flex; flex-direction:column; }
+  .course-body .lvl{
+    font-size:11px; font-weight:700; color: var(--coral);
+    background: rgba(224,98,62,.1); display:inline-block;
+    padding:4px 10px; border-radius:999px; margin-bottom: 10px; align-self:flex-start;
+  }
+  .course-body h3{ font-size: 15.5px; color: var(--teal-deep); font-weight:800; margin-bottom:6px; }
+  .course-body p{ font-size: 12.5px; color: var(--ink-soft); margin-bottom: 14px; flex:1; }
+  .course-actions{ display:flex; gap:8px; }
+  .course-actions .icon-btn{ flex:1; width:auto; }
+
+  .emoji-picker{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .emoji-opt{
+    width:38px; height:38px; border-radius:10px;
+    border:1.5px solid var(--line); background: var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; cursor:pointer;
+  }
+  .emoji-opt.selected{ border-color: var(--teal); background: rgba(31,111,92,.08); }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">ن</div>
+      لوحة المدرس
+    </div>
+    <a class="nav-item" href="admin.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item active" href="admin-courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="admin-lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="admin-quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="admin-students.html"><span class="ic">👥</span><span>طلابي والنتائج</span></a>
+    <a class="nav-item" href="admin-profile.html"><span class="ic">⚙️</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>الكورسات</h1>
+          <div class="page-sub">إدارة كورساتك الخاصة</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">👨‍🏫</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userRole">مدرس</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div></div>
+        <button class="btn btn-solid" onclick="openCourseModal()">➕ كورس جديد</button>
+      </div>
+
+      <div id="coursesGrid" class="grid grid-3">
+        <div class="loading-state">جاري تحميل الكورسات...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Course Modal -->
+<div class="modal-overlay" id="courseModal" onclick="if(event.target===this) closeCourseModal()">
+  <div class="modal-box">
+    <button class="close" onclick="closeCourseModal()">✕</button>
+    <h2 id="courseModalTitle">كورس جديد</h2>
+    <form id="courseForm">
+      <input type="hidden" id="courseId">
+      <div class="field">
+        <label>اسم الكورس</label>
+        <input type="text" id="courseTitle" placeholder="مثال: الرياضيات" required>
+      </div>
+      <div class="field">
+        <label>الصف الدراسي</label>
+        <select id="courseGrade" required>
+          <option value="" disabled selected>اختر الصف الدراسي</option>
+          <option value="جميع المراحل">جميع المراحل (كورس عام)</option>
+          <optgroup label="المرحلة الابتدائية">
+            <option>الصف الأول الابتدائي</option>
+            <option>الصف الثاني الابتدائي</option>
+            <option>الصف الثالث الابتدائي</option>
+            <option>الصف الرابع الابتدائي</option>
+            <option>الصف الخامس الابتدائي</option>
+            <option>الصف السادس الابتدائي</option>
+          </optgroup>
+          <optgroup label="المرحلة الإعدادية">
+            <option>الصف الأول الإعدادي</option>
+            <option>الصف الثاني الإعدادي</option>
+            <option>الصف الثالث الإعدادي</option>
+          </optgroup>
+          <optgroup label="المرحلة الثانوية">
+            <option>الصف الأول الثانوي</option>
+            <option>الصف الثاني الثانوي</option>
+            <option>الصف الثالث الثانوي</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>وصف مختصر (اختياري)</label>
+        <textarea id="courseDescription" rows="3" placeholder="نبذة عن محتوى الكورس..."></textarea>
+      </div>
+      <div class="field">
+        <label>أيقونة الكورس</label>
+        <div class="emoji-picker" id="emojiPicker"></div>
+      </div>
+      <button type="submit" class="btn btn-solid" id="courseSubmitBtn" style="width:100%; margin-top:8px;">حفظ الكورس</button>
+      <div id="courseFormMsg" class="form-msg"></div>
+    </form>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  let currentProfile = null;
+  const EMOJIS = ['📘','📐','🧪','📖','🌍','🔬','📊','🧮','📜','🎨','⚗️','🧬','💻','🏛️','✏️'];
+  let selectedEmoji = EMOJIS[0];
+
+  requireAuth(async (user, profile)=>{
+    currentProfile = profile;
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('avatarChip').textContent = profile.avatar || '👨‍🏫';
+    buildEmojiPicker();
+    loadCourses();
+  }, 'admin');
+
+  function buildEmojiPicker(){
+    const wrap = document.getElementById('emojiPicker');
+    wrap.innerHTML = '';
+    EMOJIS.forEach(e=>{
+      const div = document.createElement('div');
+      div.className = 'emoji-opt' + (e === selectedEmoji ? ' selected' : '');
+      div.textContent = e;
+      div.onclick = ()=>{
+        selectedEmoji = e;
+        document.querySelectorAll('.emoji-opt').forEach(el=> el.classList.toggle('selected', el.textContent === e));
+      };
+      wrap.appendChild(div);
+    });
+  }
+
+  async function loadCourses(){
+    const grid = document.getElementById('coursesGrid');
+    try{
+      const snap = await db.collection('courses').where('teacherId','==', currentProfile.teacherId).get();
+      if(snap.empty){
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="ic">📭</div>
+            <h3>لسه مفيش كورسات</h3>
+            <p>ابدأ بإضافة أول كورس بالضغط على "كورس جديد".</p>
+          </div>`;
+        return;
+      }
+      grid.innerHTML = '';
+      snap.forEach(doc=>{
+        const c = doc.data();
+        grid.innerHTML += `
+          <div class="course-card">
+            <div class="course-thumb">${c.icon || '📘'}</div>
+            <div class="course-body">
+              <span class="lvl">${c.grade || 'جميع المراحل'}</span>
+              <h3>${escapeHtml(c.title || 'كورس')}</h3>
+              <p>${escapeHtml(c.description || 'بدون وصف')}</p>
+              <div class="course-actions">
+                <button class="icon-btn" onclick='editCourse("${doc.id}")'>✏️ تعديل</button>
+                <button class="icon-btn danger" onclick='deleteCourse("${doc.id}", "${escapeHtml(c.title||"")}")'>🗑️ حذف</button>
+              </div>
+            </div>
+          </div>`;
+      });
+    }catch(e){
+      grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الكورسات الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function openCourseModal(){
+    document.getElementById('courseModalTitle').textContent = 'كورس جديد';
+    document.getElementById('courseId').value = '';
+    document.getElementById('courseTitle').value = '';
+    document.getElementById('courseGrade').value = '';
+    document.getElementById('courseDescription').value = '';
+    selectedEmoji = EMOJIS[0];
+    buildEmojiPicker();
+    hideFormMsg();
+    document.getElementById('courseModal').classList.add('open');
+  }
+
+  function closeCourseModal(){
+    document.getElementById('courseModal').classList.remove('open');
+  }
+
+  async function editCourse(id){
+    try{
+      const doc = await db.collection('courses').doc(id).get();
+      if(!doc.exists) return;
+      const c = doc.data();
+      document.getElementById('courseModalTitle').textContent = 'تعديل الكورس';
+      document.getElementById('courseId').value = id;
+      document.getElementById('courseTitle').value = c.title || '';
+      document.getElementById('courseGrade').value = c.grade || '';
+      document.getElementById('courseDescription').value = c.description || '';
+      selectedEmoji = c.icon || EMOJIS[0];
+      buildEmojiPicker();
+      hideFormMsg();
+      document.getElementById('courseModal').classList.add('open');
+    }catch(e){
+      alert('تعذر تحميل بيانات الكورس.');
+      console.error(e);
+    }
+  }
+
+  async function deleteCourse(id, title){
+    if(!confirm(`هل أنت متأكد من حذف كورس "${title}"؟ سيتم حذف كل الدروس والاختبارات المرتبطة به أيضًا.`)) return;
+    try{
+      // حذف الدروس المرتبطة
+      const lessonsSnap = await db.collection('lessons').where('courseId','==', id).get();
+      const batch = db.batch();
+      lessonsSnap.forEach(doc=> batch.delete(doc.ref));
+
+      // حذف الاختبارات المرتبطة
+      const quizzesSnap = await db.collection('quizzes').where('courseId','==', id).get();
+      quizzesSnap.forEach(doc=> batch.delete(doc.ref));
+
+      // حذف الكورس نفسه
+      batch.delete(db.collection('courses').doc(id));
+
+      await batch.commit();
+      loadCourses();
+    }catch(e){
+      alert('حدث خطأ أثناء الحذف، حاول مرة أخرى.');
+      console.error(e);
+    }
+  }
+
+  function showFormMsg(text, type){
+    const box = document.getElementById('courseFormMsg');
+    box.textContent = text;
+    box.className = 'form-msg show ' + type;
+  }
+  function hideFormMsg(){
+    document.getElementById('courseFormMsg').className = 'form-msg';
+  }
+
+  document.getElementById('courseForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    hideFormMsg();
+
+    const id = document.getElementById('courseId').value;
+    const title = document.getElementById('courseTitle').value.trim();
+    const grade = document.getElementById('courseGrade').value;
+    const description = document.getElementById('courseDescription').value.trim();
+    const btn = document.getElementById('courseSubmitBtn');
+
+    if(!title || !grade){
+      showFormMsg('من فضلك اكمل الحقول المطلوبة.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+
+    try{
+      const data = {
+        title, grade, description,
+        icon: selectedEmoji,
+        teacherId: currentProfile.teacherId,
+        teacherName: currentProfile.teacherName || '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      if(id){
+        await db.collection('courses').doc(id).update(data);
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('courses').add(data);
+      }
+
+      closeCourseModal();
+      loadCourses();
+    }catch(e){
+      showFormMsg('حدث خطأ أثناء الحفظ، حاول مرة أخرى.', 'error');
+      console.error(e);
+    } finally{
+      btn.disabled = false;
+      btn.textContent = 'حفظ الكورس';
+    }
+  });
+</script>
+
+</body>
+</html>

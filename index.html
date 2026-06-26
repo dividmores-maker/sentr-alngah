@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة النجاح التعليمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --cream: #FBF8F1;
+    --cream-soft: #F2ECDB;
+    --ink: #16241F;
+    --ink-soft: #5C6F6A;
+    --teal: #1F6F5C;
+    --teal-deep: #0F3D33;
+    --gold: #E8A33D;
+    --gold-deep: #C77F1F;
+    --coral: #E0623E;
+    --line: rgba(15,61,51,0.12);
+    --card: #FFFFFF;
+    --radius: 20px;
+    --shadow-sm: 0 8px 20px -8px rgba(15,61,51,.18);
+    --shadow-md: 0 24px 48px -16px rgba(15,61,51,.24);
+    --shadow-lg: 0 40px 80px -24px rgba(15,61,51,.32);
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    font-family: 'Tajawal', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  h1,h2,h3,.brand,.btn,.badge,.eyebrow{ font-family:'Cairo', sans-serif; }
+
+  ::selection{ background: var(--gold); color: #fff; }
+
+  /* ===================== Scroll reveal ===================== */
+  .reveal{
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .7s cubic-bezier(.16,.8,.3,1), transform .7s cubic-bezier(.16,.8,.3,1);
+  }
+  .reveal.in{ opacity: 1; transform: translateY(0); }
+  .reveal-stagger > *{ transition-delay: calc(var(--i, 0) * 70ms); }
+
+  /* ===================== Texture ===================== */
+  /* ===== Splash Screen ===== */
+  #splash{
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0A1F18;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .7s ease, visibility .7s ease;
+  }
+  #splash.hidden{ opacity: 0; visibility: hidden; }
+  #splash.done{ display: none; }
+
+  .splash-inner{
+    position: relative;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    animation: splashEnter .9s cubic-bezier(.2,.8,.3,1.2) forwards;
+  }
+  @keyframes splashEnter{
+    from{ transform: scale(.6) translateY(30px); opacity: 0; }
+    to{   transform: scale(1)  translateY(0);    opacity: 1; }
+  }
+
+  .splash-img{
+    width: min(88vw, 500px);
+    height: auto;
+    border-radius: 28px;
+    object-fit: cover;
+    box-shadow:
+      0 0 0 2px rgba(232,163,61,.4),
+      0 40px 100px -20px rgba(0,0,0,.8),
+      0 0 80px 10px rgba(232,163,61,.15);
+    animation: splashGlow 2s ease-in-out infinite alternate;
+  }
+  @keyframes splashGlow{
+    from{ box-shadow: 0 0 0 2px rgba(232,163,61,.4), 0 40px 100px -20px rgba(0,0,0,.8), 0 0 60px 8px rgba(232,163,61,.1); }
+    to{   box-shadow: 0 0 0 3px rgba(232,163,61,.7), 0 40px 100px -20px rgba(0,0,0,.8), 0 0 120px 20px rgba(232,163,61,.3); }
+  }
+
+  .splash-rings{
+    position: absolute; inset: -30px;
+    border-radius: 50%; pointer-events: none;
+  }
+  .splash-ring{
+    position: absolute; inset: 0;
+    border: 2px solid rgba(232,163,61,.25);
+    border-radius: 50%;
+    animation: ringPulse 2.5s ease-out infinite;
+  }
+  .splash-ring:nth-child(2){ animation-delay: .5s; }
+  .splash-ring:nth-child(3){ animation-delay: 1s; }
+  @keyframes ringPulse{
+    0%{   transform: scale(.85); opacity: .8; }
+    100%{ transform: scale(1.3); opacity: 0; }
+  }
+
+  .splash-bar{
+    width: min(88vw, 500px);
+    height: 4px;
+    background: rgba(255,255,255,.1);
+    border-radius: 999px;
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .splash-bar-fill{
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+    border-radius: 999px;
+    animation: barLoad 2.6s ease forwards;
+  }
+  @keyframes barLoad{
+    from{ width: 0%; }
+    to{   width: 100%; }
+  }
+
+  .splash-logo-text{
+    color: rgba(232,163,61,.9);
+    font-family: 'Cairo', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    margin-top: 16px;
+    letter-spacing: 2px;
+    animation: fadeInUp .8s .4s both;
+  }
+  @keyframes fadeInUp{
+    from{ opacity:0; transform: translateY(10px); }
+    to{   opacity:1; transform: translateY(0); }
+  }
+
+  /* اخفاء محتوى الصفحة لحد ما الـsplash يختفي */
+  body.splash-active > *:not(#splash){ opacity: 0; }
+  body:not(.splash-active) > *:not(#splash){ opacity: 1; transition: opacity .5s ease; }
+
+    position: fixed; inset:0; z-index: 1; pointer-events:none;
+    opacity: .035; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ===================== Navbar ===================== */
+  header{
+    position: sticky; top:0; z-index: 50;
+    backdrop-filter: blur(16px) saturate(140%);
+    background: rgba(251,248,241,0.78);
+    border-bottom: 1px solid var(--line);
+  }
+  nav{
+    max-width: 1200px; margin: 0 auto;
+    display:flex; align-items:center; justify-content: space-between;
+    padding: 16px 28px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:11px;
+    font-weight:900; font-size: 21px; color: var(--teal-deep);
+    letter-spacing: -.2px;
+  }
+  .brand .mark{
+    width: 44px; height:44px; border-radius: 13px;
+    overflow: hidden;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 8px 18px -4px rgba(15,61,51,.45);
+    position: relative; flex-shrink: 0;
+  }
+  .brand .mark img{
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .brand .mark .fallback{
+    width:100%; height:100%;
+    background: linear-gradient(150deg, var(--teal) 0%, var(--teal-deep) 100%);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:900; font-size:19px;
+  }
+  .nav-links{ display:flex; gap: 30px; align-items:center; }
+  .nav-links a{
+    text-decoration:none; color: var(--ink-soft); font-weight:600; font-size:14.5px;
+    transition: color .2s; position:relative;
+  }
+  .nav-links a::after{
+    content:''; position:absolute; right:0; bottom:-6px; width:0; height:2px;
+    background: var(--gold); transition: width .25s ease;
+  }
+  .nav-links a:hover{ color: var(--teal-deep); }
+  .nav-links a:hover::after{ width:100%; }
+  .nav-cta{ display:flex; gap:10px; }
+
+  .btn{
+    border:none; cursor:pointer;
+    font-weight:700; font-size:14px;
+    padding: 11px 24px;
+    border-radius: 999px;
+    transition: transform .2s cubic-bezier(.2,.8,.3,1.3), box-shadow .25s ease, background .2s;
+    position: relative;
+  }
+  .btn:active{ transform: scale(.96); }
+  .btn-ghost{
+    background: transparent; color: var(--teal-deep);
+    border: 1.5px solid var(--line);
+  }
+  .btn-ghost:hover{ background: var(--cream-soft); border-color: var(--teal); }
+  .btn-solid{
+    background: linear-gradient(150deg, var(--teal) 0%, var(--teal-deep) 100%);
+    color:#fff;
+    box-shadow: 0 10px 24px -6px rgba(15,61,51,.5), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+  .btn-solid:hover{ box-shadow: 0 14px 30px -6px rgba(15,61,51,.55); transform: translateY(-2px); }
+  .btn-gold{
+    background: linear-gradient(150deg, var(--gold) 0%, var(--gold-deep) 100%);
+    color:#fff;
+    box-shadow: 0 10px 24px -6px rgba(199,127,31,.5), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .btn-gold:hover{ box-shadow: 0 14px 30px -6px rgba(199,127,31,.55); transform: translateY(-2px); }
+
+  main{ position: relative; z-index: 2; }
+  .wrap{ max-width: 1200px; margin: 0 auto; padding: 0 28px; }
+
+  /* ===================== Hero ===================== */
+  .hero{
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items:center;
+    padding: 76px 0 96px;
+    perspective: 1400px;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:9px;
+    background: var(--cream-soft);
+    color: var(--teal-deep);
+    border-radius: 999px;
+    padding: 8px 18px 8px 14px;
+    font-size: 12.5px; font-weight:700;
+    margin-bottom: 24px;
+    border: 1px solid var(--line);
+  }
+  .eyebrow .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 0 rgba(232,163,61,.6);
+    animation: pulse-ring 2s infinite;
+  }
+  @keyframes pulse-ring{
+    0%{ box-shadow: 0 0 0 0 rgba(232,163,61,.55); }
+    70%{ box-shadow: 0 0 0 7px rgba(232,163,61,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(232,163,61,0); }
+  }
+
+  .hero h1{
+    font-size: 54px;
+    line-height: 1.22;
+    font-weight: 900;
+    color: var(--teal-deep);
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+  }
+  .hero h1 .accent{
+    color: var(--coral);
+    position: relative;
+    display:inline-block;
+  }
+  .hero h1 .accent svg{
+    position:absolute; right:-4%; bottom:-14px; width:108%; height:18px;
+  }
+  .hero p.lead{
+    font-size: 17px; color: var(--ink-soft);
+    max-width: 480px; line-height:1.95; margin-bottom: 34px;
+  }
+  .hero-actions{ display:flex; gap:14px; margin-bottom: 44px; flex-wrap: wrap; }
+  .hero-actions .btn{ padding: 15px 32px; font-size:15px; }
+
+  .stat-row{ display:flex; gap: 40px; flex-wrap:wrap; }
+  .stat{ display:flex; flex-direction:column; }
+  .stat b{ font-size: 30px; color: var(--teal-deep); font-family:'Cairo',sans-serif; font-weight:900; letter-spacing:-.5px; }
+  .stat span{ font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; font-weight:500; }
+
+  /* ===================== Hero 3D scene (signature element) ===================== */
+  .hero-scene{
+    position: relative;
+    height: 480px;
+    transform-style: preserve-3d;
+  }
+  .scene-stage{
+    position: absolute; inset: 0;
+    transform-style: preserve-3d;
+    transform: rotateY(-16deg) rotateX(8deg);
+    transition: transform .25s ease-out;
+    animation: scene-breathe 10s ease-in-out infinite;
+  }
+  @keyframes scene-breathe{
+    0%,100%{ transform: rotateY(-16deg) rotateX(8deg) translateY(0); }
+    50%{ transform: rotateY(-13deg) rotateX(6deg) translateY(-8px); }
+  }
+
+  .scene-layer{
+    position: absolute;
+    border-radius: 22px;
+    background: var(--card);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255,255,255,.6);
+    overflow: hidden;
+  }
+
+  /* Back layer: lesson/video card */
+  .layer-back{
+    width: 78%; height: 56%;
+    top: 4%; right: 8%;
+    transform: translateZ(-40px);
+    background: linear-gradient(155deg, var(--teal-deep), var(--teal) 65%);
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding: 22px;
+  }
+  .layer-back .row{ display:flex; align-items:center; gap:10px; }
+  .layer-back .play-dot{
+    width:46px; height:46px; border-radius:50%;
+    background: rgba(255,255,255,.16);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:17px;
+    border: 1px solid rgba(255,255,255,.3);
+  }
+  .layer-back .meta{ color:#fff; }
+  .layer-back .meta b{ display:block; font-size:14px; font-family:'Cairo',sans-serif; margin-bottom:2px; }
+  .layer-back .meta span{ font-size:11.5px; opacity:.75; }
+  .layer-back .waveform{ display:flex; align-items:flex-end; gap:3px; height: 34px; }
+  .layer-back .waveform i{
+    width:4px; border-radius:2px; background: rgba(232,163,61,.85);
+    animation: wave 1.4s ease-in-out infinite;
+  }
+  @keyframes wave{ 0%,100%{ transform: scaleY(.4); } 50%{ transform: scaleY(1); } }
+
+  /* Mid layer: quiz/result card */
+  .layer-mid{
+    width: 56%; height: 50%;
+    bottom: 6%; left: 6%;
+    transform: translateZ(20px);
+    padding: 20px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .layer-mid .top-row{ display:flex; align-items:center; justify-content:space-between; }
+  .layer-mid .ring{
+    width:54px; height:54px; border-radius:50%;
+    background: conic-gradient(var(--gold) 0% 92%, var(--cream-soft) 92% 100%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .layer-mid .ring span{
+    width:42px; height:42px; border-radius:50%; background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:900; color: var(--teal-deep); font-family:'Cairo',sans-serif;
+  }
+  .layer-mid .badge-pill{
+    background: rgba(31,111,92,.1); color: var(--teal-deep);
+    font-size:10.5px; font-weight:700; padding:5px 11px; border-radius:999px;
+  }
+  .layer-mid h4{ font-size:14px; color: var(--teal-deep); font-family:'Cairo',sans-serif; }
+  .layer-mid .bars{ display:flex; gap:6px; align-items:flex-end; height:30px; margin-top:auto; }
+  .layer-mid .bars i{ flex:1; border-radius:4px 4px 0 0; background: var(--cream-soft); }
+  .layer-mid .bars i.fill{ background: linear-gradient(180deg, var(--gold), var(--gold-deep)); }
+
+  /* Front layer: floating achievement chip */
+  .layer-front{
+    width: 44%; padding: 16px 18px;
+    top: 8%; left: -2%;
+    transform: translateZ(70px);
+    display:flex; align-items:center; gap:13px;
+    animation: chip-float 5s ease-in-out infinite;
+  }
+  @keyframes chip-float{
+    0%,100%{ transform: translateZ(70px) translateY(0); }
+    50%{ transform: translateZ(70px) translateY(-10px); }
+  }
+  .layer-front .ic{
+    width:38px; height:38px; border-radius:11px; flex-shrink:0;
+    background: linear-gradient(150deg, var(--coral), #B8492F);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:17px;
+    box-shadow: 0 8px 16px -4px rgba(224,98,62,.5);
+  }
+  .layer-front b{ display:block; font-size:12.5px; color: var(--teal-deep); font-family:'Cairo',sans-serif; }
+  .layer-front span{ font-size:10.5px; color: var(--ink-soft); }
+
+  .scene-floor{
+    position:absolute; bottom: -6%; right: 10%; width: 70%; height: 30px;
+    background: radial-gradient(ellipse at center, rgba(15,61,51,.18), transparent 70%);
+    transform: translateZ(-90px) rotateX(90deg);
+    filter: blur(4px);
+  }
+
+  /* ===================== Section shell ===================== */
+  .section{ padding: 88px 0; }
+  .section-head{ max-width: 640px; margin: 0 auto 52px; text-align:center; }
+  .section-head .tag{
+    color: var(--coral); font-weight:800; font-size:13px;
+    letter-spacing: .5px; margin-bottom:12px; display:block;
+  }
+  .section-head h2{ font-size: 36px; color: var(--teal-deep); font-weight:900; line-height:1.4; letter-spacing:-.5px; }
+  .section-head p{ color: var(--ink-soft); margin-top: 14px; font-size:15.5px; line-height:1.9; }
+
+  /* ===================== Features ===================== */
+  .features{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .feature{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 32px 26px;
+    position: relative;
+    overflow:hidden;
+    transform-style: preserve-3d;
+    transition: transform .35s cubic-bezier(.2,.8,.3,1), box-shadow .35s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .feature:hover{
+    transform: translateY(-10px) rotateX(3deg);
+    box-shadow: var(--shadow-md);
+  }
+  .feature .ic{
+    width: 54px; height:54px; border-radius: 15px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 24px; color:#fff; margin-bottom: 20px;
+    box-shadow: 0 10px 20px -6px rgba(15,61,51,.4);
+  }
+  .feature h3{ font-size: 18.5px; color: var(--teal-deep); margin-bottom: 10px; font-weight:800; }
+  .feature p{ font-size: 14px; color: var(--ink-soft); line-height:1.9; }
+
+  .f1 .ic{ background: linear-gradient(150deg, var(--teal), var(--teal-deep)); }
+  .f2 .ic{ background: linear-gradient(150deg, var(--gold), var(--gold-deep)); }
+  .f3 .ic{ background: linear-gradient(150deg, var(--coral), #B8492F); }
+  .f4 .ic{ background: linear-gradient(150deg, #4a8f7c, var(--teal)); }
+  .f5 .ic{ background: linear-gradient(150deg, #ecb35f, var(--gold-deep)); }
+  .f6 .ic{ background: linear-gradient(150deg, #e87f5e, var(--coral)); }
+
+  /* ===================== Stages ===================== */
+  .stages{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .stage-card{
+    background: linear-gradient(165deg, #fff 0%, var(--cream-soft) 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 36px 28px;
+    text-align: center;
+    transition: transform .35s cubic-bezier(.2,.8,.3,1), box-shadow .35s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .stage-card:hover{ transform: translateY(-10px) scale(1.02); box-shadow: var(--shadow-md); }
+  .stage-card .ic{
+    width: 64px; height:64px; border-radius: 18px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 28px; color:#fff; margin: 0 auto 20px;
+    box-shadow: 0 12px 24px -6px rgba(15,61,51,.4);
+  }
+  .stage-card.st1 .ic{ background: linear-gradient(150deg, #4a8f7c, var(--teal)); }
+  .stage-card.st2 .ic{ background: linear-gradient(150deg, var(--gold), var(--gold-deep)); }
+  .stage-card.st3 .ic{ background: linear-gradient(150deg, var(--coral), #B8492F); }
+  .stage-card h3{ font-size: 19px; color: var(--teal-deep); margin-bottom: 10px; font-weight:800; }
+  .stage-card p{ font-size: 13.5px; color: var(--ink-soft); line-height:1.9; }
+
+  /* ===================== Why us ===================== */
+  .why-us{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .why-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px 26px;
+    display:flex; gap:18px; align-items:flex-start;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .3s ease, transform .3s ease;
+  }
+  .why-card:hover{ box-shadow: var(--shadow-md); transform: translateY(-6px); }
+  .why-card .num{
+    width: 44px; height:44px; border-radius: 13px;
+    background: linear-gradient(150deg, var(--teal-deep), var(--teal));
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:900; font-size:17px; flex-shrink:0;
+    font-family:'Cairo',sans-serif;
+    box-shadow: 0 8px 18px -4px rgba(15,61,51,.45);
+  }
+  .why-card h3{ font-size:16px; color: var(--teal-deep); font-weight:800; margin-bottom:7px; }
+  .why-card p{ font-size:13.5px; color: var(--ink-soft); line-height:1.85; }
+
+  /* ===================== Teachers ===================== */
+  .teachers{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .teacher-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform .35s cubic-bezier(.2,.8,.3,1), box-shadow .35s ease;
+    cursor: default;
+  }
+  .teacher-card:hover{ transform: translateY(-10px) scale(1.02); box-shadow: var(--shadow-md); }
+  .teacher-card .photo-wrap{
+    width: 100%;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(150deg, var(--teal-deep), var(--teal));
+  }
+  .teacher-card .photo-wrap img{
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: top center;
+    display: block;
+    transition: transform .5s ease;
+  }
+  .teacher-card:hover .photo-wrap img{ transform: scale(1.05); }
+  .teacher-card .photo-wrap .placeholder{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 70px;
+    background: linear-gradient(150deg, var(--teal-deep), var(--teal));
+  }
+  .teacher-card .info{
+    padding: 18px 16px 20px;
+    text-align: center;
+    border-top: 1px solid var(--line);
+  }
+  .teacher-card .info h3{
+    font-size: 15.5px; color: var(--teal-deep); font-weight:800;
+    margin-bottom: 4px;
+  }
+  .teacher-card .info span{
+    font-size: 12.5px; color: var(--ink-soft);
+  }
+
+  /* ===================== Testimonials ===================== */
+  .testimonials{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .testimonial-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px 26px;
+    box-shadow: var(--shadow-sm);
+    transition: transform .3s ease, box-shadow .3s ease;
+  }
+  .testimonial-card:hover{ transform: translateY(-6px); box-shadow: var(--shadow-md); }
+  .testimonial-card .stars{ color: var(--gold); font-size:15px; margin-bottom: 14px; letter-spacing:2px; }
+  .testimonial-card p{ font-size:14px; color: var(--ink); line-height:1.9; margin-bottom: 20px; min-height: 90px; }
+  .testimonial-card .person{ display:flex; align-items:center; gap:12px; }
+  .testimonial-card .avatar{
+    width: 44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; color:#fff; flex-shrink:0;
+    box-shadow: 0 8px 16px -4px rgba(15,61,51,.4);
+  }
+  .testimonial-card .person b{ font-size:13.5px; color: var(--teal-deep); display:block; font-family:'Cairo',sans-serif; }
+  .testimonial-card .person span{ font-size:12px; color: var(--ink-soft); }
+  .t1 .avatar{ background: linear-gradient(150deg, var(--teal), var(--teal-deep)); }
+  .t2 .avatar{ background: linear-gradient(150deg, var(--gold), var(--gold-deep)); }
+  .t3 .avatar{ background: linear-gradient(150deg, var(--coral), #B8492F); }
+
+  /* ===================== Courses ===================== */
+  .courses{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .course-card{
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    overflow:hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease;
+  }
+  .course-card:hover{ transform: translateY(-8px) scale(1.015); box-shadow: var(--shadow-md); }
+  .course-thumb{
+    height: 112px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 34px; color:#fff;
+  }
+  .c1 .course-thumb{ background: linear-gradient(150deg, var(--teal), var(--teal-deep)); }
+  .c2 .course-thumb{ background: linear-gradient(150deg, var(--gold), var(--gold-deep)); }
+  .c3 .course-thumb{ background: linear-gradient(150deg, var(--coral), #B8492F); }
+  .c4 .course-thumb{ background: linear-gradient(150deg, #4a8f7c, var(--teal)); }
+  .course-body{ padding: 18px 18px 22px; }
+  .course-body .lvl{
+    font-size:11px; font-weight:700; color: var(--coral);
+    background: rgba(224,98,62,.1); display:inline-block;
+    padding:4px 11px; border-radius:999px; margin-bottom: 11px;
+  }
+  .course-body h3{ font-size: 16px; color: var(--teal-deep); font-weight:800; margin-bottom:6px; }
+  .course-body p{ font-size: 13px; color: var(--ink-soft); }
+
+  /* ===================== CTA strip ===================== */
+  .cta-strip{
+    background: linear-gradient(155deg, var(--teal-deep) 0%, var(--teal) 100%);
+    border-radius: 30px;
+    padding: 58px 52px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 30px; flex-wrap: wrap;
+    position: relative; overflow:hidden;
+    color:#fff;
+    box-shadow: var(--shadow-lg);
+  }
+  .cta-strip::before{
+    content:''; position:absolute; left:-70px; top:-70px;
+    width:240px; height:240px; border-radius:50%;
+    background: radial-gradient(circle, rgba(232,163,61,.22), transparent 70%);
+  }
+  .cta-strip::after{
+    content:''; position:absolute; right:-40px; bottom:-90px;
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle, rgba(224,98,62,.18), transparent 70%);
+  }
+  .cta-strip h2{ font-size: 31px; font-weight:900; margin-bottom: 9px; letter-spacing:-.5px; }
+  .cta-strip p{ opacity:.85; font-size:15px; }
+  .cta-strip .btn{ position:relative; z-index:1; }
+
+  /* ===================== App download ===================== */
+  .app-download{
+    background: linear-gradient(155deg, var(--teal-deep), var(--teal));
+    border-radius: 30px;
+    padding: 52px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 30px; flex-wrap: wrap;
+    position: relative; overflow:hidden;
+    color:#fff;
+    box-shadow: var(--shadow-lg);
+  }
+  .app-download::after{
+    content:''; position:absolute; left:-60px; bottom:-60px;
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle, rgba(232,163,61,.18), transparent 70%);
+  }
+  .app-download h2{ font-size: 26px; font-weight:900; margin-bottom: 9px; }
+  .app-download p{ opacity:.85; font-size:14.5px; max-width: 420px; }
+  .app-download .badges{ display:flex; gap:14px; flex-wrap:wrap; position:relative; z-index:1; }
+  .store-badge{
+    display:flex; align-items:center; gap:10px;
+    background: rgba(255,255,255,.1);
+    border: 1.5px solid rgba(255,255,255,.25);
+    border-radius: 15px;
+    padding: 13px 24px;
+    text-decoration:none; color:#fff;
+    transition: background .2s, transform .2s;
+    position: relative;
+  }
+  .store-badge:hover{ background: rgba(255,255,255,.18); transform: translateY(-3px); }
+  .store-badge .ic{ font-size: 26px; }
+  .store-badge .txt{ display:flex; flex-direction:column; line-height:1.3; text-align:right; }
+  .store-badge .txt small{ font-size: 11px; opacity:.8; }
+  .store-badge .txt b{ font-size: 15px; font-family:'Cairo',sans-serif; }
+  .store-badge .soon-tag{
+    position:absolute; top:-10px; left:-10px;
+    background: var(--gold); color:#fff;
+    font-size: 10.5px; font-weight:800;
+    padding: 3px 10px; border-radius: 999px;
+    font-family:'Cairo',sans-serif;
+    box-shadow: 0 4px 10px rgba(0,0,0,.15);
+  }
+
+  /* ===================== Footer ===================== */
+  footer{
+    border-top: 1px solid var(--line);
+    padding: 44px 0;
+    text-align:center;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+  }
+  footer .brand{ justify-content:center; margin-bottom: 16px; font-size:18px; }
+
+  /* ===================== Modal: Login ===================== */
+  .modal-overlay{
+    position: fixed; inset:0; z-index: 100;
+    background: rgba(15,61,51,.5);
+    backdrop-filter: blur(8px);
+    display:none;
+    align-items:center; justify-content:center;
+    padding: 20px;
+    animation: fadeIn .25s ease;
+  }
+  .modal-overlay.open{ display:flex; }
+  @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+
+  .modal{
+    background: var(--card);
+    border-radius: 26px;
+    width: 100%; max-width: 430px;
+    max-height: 90vh; overflow-y: auto;
+    padding: 42px 38px;
+    position: relative;
+    box-shadow: 0 50px 100px -30px rgba(15,61,51,.55);
+    animation: pop .4s cubic-bezier(.2,.85,.3,1.25);
+  }
+  @keyframes pop{
+    from{ transform: scale(.93) translateY(24px); opacity:0; }
+    to{ transform: scale(1) translateY(0); opacity:1; }
+  }
+  .modal .close{
+    position:absolute; top:20px; left:20px;
+    width:32px; height:32px; border-radius:50%;
+    border:1px solid var(--line); background:transparent;
+    cursor:pointer; font-size:16px; color: var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    transition: background .2s;
+  }
+  .modal .close:hover{ background: var(--cream-soft); }
+
+  .modal .mark{
+    width: 58px; height:58px; border-radius: 17px;
+    background: linear-gradient(150deg, var(--teal), var(--teal-deep));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:900; font-size:25px;
+    margin: 0 auto 20px;
+    box-shadow: 0 12px 26px -6px rgba(15,61,51,.5);
+  }
+  .modal h2{
+    text-align:center; font-size: 22px; color: var(--teal-deep);
+    font-weight:900; margin-bottom: 7px; font-family:'Cairo',sans-serif;
+  }
+  .modal .sub{ text-align:center; color: var(--ink-soft); font-size:13.5px; margin-bottom: 28px; }
+
+  .tabs{
+    display:flex; background: var(--cream-soft); border-radius: 999px;
+    padding: 4px; margin-bottom: 24px;
+  }
+  .tab{
+    flex:1; text-align:center; padding: 10px 0;
+    border-radius:999px; font-weight:700; font-size:13.5px;
+    cursor:pointer; color: var(--ink-soft);
+    transition: all .25s; font-family:'Cairo',sans-serif;
+  }
+  .tab.active{ background:#fff; color: var(--teal-deep); box-shadow: 0 6px 16px -6px rgba(15,61,51,.3); }
+
+  .field{ margin-bottom: 16px; }
+  .field label{
+    display:block; font-size:13px; font-weight:700; color: var(--teal-deep);
+    margin-bottom:7px; font-family:'Cairo',sans-serif;
+  }
+  .field input, .field select{
+    width:100%; padding: 13px 16px; border-radius: 13px;
+    border: 1.5px solid var(--line); background: var(--cream);
+    font-family:'Tajawal',sans-serif; font-size:14px; color: var(--ink);
+    outline:none; transition: border-color .2s, box-shadow .2s;
+  }
+  .field input:focus, .field select:focus{
+    border-color: var(--teal);
+    box-shadow: 0 0 0 4px rgba(31,111,92,.12);
+  }
+  .field-row{ display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:20px; }
+  .field-row a{ color: var(--teal); text-decoration:none; font-weight:600; }
+  .remember{ display:flex; align-items:center; gap:6px; color: var(--ink-soft); }
+
+  .modal .btn-solid{ width:100%; padding:14px 0; font-size:15px; }
+  .modal-foot{ text-align:center; margin-top: 22px; font-size:13.5px; color: var(--ink-soft); }
+  .modal-foot a{ color: var(--coral); font-weight:700; text-decoration:none; }
+
+  /* ===================== Responsive ===================== */
+  @media (max-width: 980px){
+    .hero{ grid-template-columns: 1fr; padding-top: 44px; gap: 50px; }
+    .hero-scene{ height: 380px; order:-1; }
+    .hero h1{ font-size: 40px; }
+    .features{ grid-template-columns: repeat(2, 1fr); }
+    .courses{ grid-template-columns: repeat(2, 1fr); }
+    .stages{ grid-template-columns: repeat(2, 1fr); }
+    .why-us{ grid-template-columns: repeat(2, 1fr); }
+    .teachers{ grid-template-columns: repeat(2, 1fr); }
+    .testimonials{ grid-template-columns: repeat(2, 1fr); }
+    .nav-links{ display:none; }
+  }
+  @media (max-width: 560px){
+    .features{ grid-template-columns: 1fr; }
+    .courses{ grid-template-columns: 1fr; }
+    .stages{ grid-template-columns: 1fr; }
+    .why-us{ grid-template-columns: 1fr; }
+    .teachers{ grid-template-columns: 1fr; }
+    .testimonials{ grid-template-columns: 1fr; }
+    .hero h1{ font-size: 32px; }
+    .cta-strip{ flex-direction:column; text-align:center; padding: 44px 28px; }
+    .app-download{ flex-direction:column; text-align:center; padding: 40px 26px; }
+    .app-download .badges{ justify-content:center; }
+    .modal{ padding: 34px 24px; }
+    .hero-scene{ height: 320px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+    .reveal{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body class="splash-active">
+
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-rings">
+      <div class="splash-ring"></div>
+      <div class="splash-ring"></div>
+      <div class="splash-ring"></div>
+    </div>
+    <img class="splash-img" src="splash.PNG" alt="سنتر النجاح"
+         onerror="this.src='splash.png'; this.onerror=null;">
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    <div class="splash-logo-text">سنتر النجاح التعليمي</div>
+  </div>
+</div>
+
+<div class="grain"></div>
+
+<header>
+  <nav>
+    <div class="brand">
+      <div class="mark">
+        <img src="splash.PNG" alt="سنتر النجاح"
+             onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'fallback\\'>س</div>';">
+      </div>
+      سنتر النجاح
+    </div>
+    <div class="nav-links">
+      <a href="#features">مميزاتنا</a>
+      <a href="#stages">المراحل الدراسية</a>
+      <a href="#courses">الكورسات</a>
+      <a href="#testimonials">آراء المسجلين</a>
+    </div>
+    <div class="nav-cta">
+      <button class="btn btn-ghost" onclick="openModal('login')">تسجيل الدخول</button>
+      <button class="btn btn-solid" onclick="openModal('register')">إنشاء حساب</button>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-text">
+        <span class="eyebrow"><span class="dot"></span> منصة تعليمية متكاملة لسنتر النجاح</span>
+        <h1>طريقك نحو <span class="accent">التفوق<svg viewBox="0 0 200 18" preserveAspectRatio="none"><path d="M2 13 Q 50 2, 100 9 T 198 7" stroke="#E8A33D" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.55"/></svg></span> يبدأ من هنا</h1>
+        <p class="lead">تابع شروحاتك، حل الاختبارات، واستلم نتائجك في مكان واحد. منصة بسيطة وسريعة، مصممة لتناسب طلاب سنتر النجاح في كل المراحل.</p>
+        <div class="hero-actions">
+          <button class="btn btn-solid" onclick="openModal('login')">ابدأ الآن</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('courses').scrollIntoView({behavior:'smooth'})">استعرض الكورسات</button>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><b>+1200</b><span>طالب مسجل</span></div>
+          <div class="stat"><b>+45</b><span>كورس متاح</span></div>
+          <div class="stat"><b>98%</b><span>نسبة الرضا</span></div>
+        </div>
+      </div>
+
+      <div class="hero-scene" id="heroScene">
+        <div class="scene-stage" id="sceneStage">
+          <div class="scene-floor"></div>
+          <div class="scene-layer layer-back">
+            <div class="row">
+              <div class="play-dot">▶</div>
+              <div class="meta"><b>شرح الدرس الثالث</b><span>الرياضيات · أ. أحمد الزياد</span></div>
+            </div>
+            <div class="waveform">
+              <i style="height:40%; animation-delay:0s"></i>
+              <i style="height:70%; animation-delay:.1s"></i>
+              <i style="height:55%; animation-delay:.2s"></i>
+              <i style="height:90%; animation-delay:.3s"></i>
+              <i style="height:60%; animation-delay:.4s"></i>
+              <i style="height:80%; animation-delay:.5s"></i>
+              <i style="height:45%; animation-delay:.6s"></i>
+              <i style="height:75%; animation-delay:.7s"></i>
+            </div>
+          </div>
+          <div class="scene-layer layer-mid">
+            <div class="top-row">
+              <span class="badge-pill">اختبار الوحدة الأولى</span>
+              <div class="ring"><span>92%</span></div>
+            </div>
+            <h4>نتيجتك ممتازة 🎉</h4>
+            <div class="bars">
+              <i style="height:35%"></i>
+              <i class="fill" style="height:60%"></i>
+              <i class="fill" style="height:85%"></i>
+              <i style="height:45%"></i>
+              <i class="fill" style="height:95%"></i>
+              <i style="height:30%"></i>
+            </div>
+          </div>
+          <div class="scene-layer layer-front">
+            <div class="ic">🏆</div>
+            <div><b>وسام المتفوقين</b><span>أعلى 5% هذا الشهر</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <div class="section-head reveal">
+        <span class="tag">لماذا منصة النجاح</span>
+        <h2>كل ما يحتاجه الطالب في تجربة واحدة</h2>
+        <p>صممنا المنصة لتكون سهلة الاستخدام وواضحة، بحيث يقدر الطالب يركز على المذاكرة بدون تعقيد.</p>
+      </div>
+      <div class="features reveal-stagger">
+        <div class="feature f1 reveal" style="--i:0">
+          <div class="ic">🎥</div>
+          <h3>شروحات فيديو</h3>
+          <p>كل الحصص متاحة بالفيديو، تقدر تشوفها في أي وقت وتعيد المشاهدة براحتك.</p>
+        </div>
+        <div class="feature f2 reveal" style="--i:1">
+          <div class="ic">📄</div>
+          <h3>ملفات ومذكرات PDF</h3>
+          <p>ملازم ومذكرات كل مادة متاحة للتحميل والمراجعة في أي وقت.</p>
+        </div>
+        <div class="feature f3 reveal" style="--i:2">
+          <div class="ic">📝</div>
+          <h3>اختبارات تفاعلية</h3>
+          <p>اختبارات بعد كل درس مع تصحيح فوري، عشان تعرف مستواك على طول.</p>
+        </div>
+        <div class="feature f4 reveal" style="--i:3">
+          <div class="ic">📊</div>
+          <h3>تتابع تقدمك</h3>
+          <p>لوحة متابعة توضح نسبة إنجازك في كل مادة ودرجاتك في الاختبارات.</p>
+        </div>
+        <div class="feature f5 reveal" style="--i:4">
+          <div class="ic">🔔</div>
+          <h3>إشعارات فورية</h3>
+          <p>تنبيهات بأي درس جديد أو اختبار قادم عشان ما يفوتك حاجة.</p>
+        </div>
+        <div class="feature f6 reveal" style="--i:5">
+          <div class="ic">🔒</div>
+          <h3>حساب خاص وآمن</h3>
+          <p>بياناتك ونتائجك محفوظة في حسابك فقط، وما يشوفها غير أنت والإدارة.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGES -->
+    <section class="section" id="stages">
+      <div class="section-head reveal">
+        <span class="tag">المراحل الدراسية المتاحة</span>
+        <h2>منصة النجاح تغطي كل المراحل التعليمية</h2>
+        <p>من الابتدائية وحتى الثانوية، كل مرحلة ليها كورساتها ومدرسينها واختباراتها الخاصة.</p>
+      </div>
+      <div class="stages reveal-stagger">
+        <div class="stage-card st1 reveal" style="--i:0">
+          <div class="ic">🧒</div>
+          <h3>المرحلة الابتدائية</h3>
+          <p>من الصف الأول وحتى السادس الابتدائي، بشروحات مبسطة ومناسبة لعمر الطالب.</p>
+        </div>
+        <div class="stage-card st2 reveal" style="--i:1">
+          <div class="ic">📘</div>
+          <h3>المرحلة الإعدادية</h3>
+          <p>من الصف الأول وحتى الثالث الإعدادي، مع مراجعات واختبارات دورية لكل مادة.</p>
+        </div>
+        <div class="stage-card st3 reveal" style="--i:2">
+          <div class="ic">🎓</div>
+          <h3>المرحلة الثانوية</h3>
+          <p>من الصف الأول وحتى الثالث الثانوي، بتجهيز كامل للامتحانات بأسلوب مكثف.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHY US -->
+    <section class="section" id="why-us">
+      <div class="section-head reveal">
+        <span class="tag">لماذا تختار النجاح؟</span>
+        <h2>كل ما تحتاجه لتحقيق التفوق في مكان واحد</h2>
+        <p>منصة مصممة خصيصًا لتناسب طلاب سنتر النجاح بكل المراحل.</p>
+      </div>
+      <div class="why-us reveal-stagger">
+        <div class="why-card reveal" style="--i:0">
+          <div class="num">1</div>
+          <div>
+            <h3>سهولة الاستخدام</h3>
+            <p>تصميم بسيط وواضح يناسب كل الأعمار، بدون أي تعقيد في الاستخدام.</p>
+          </div>
+        </div>
+        <div class="why-card reveal" style="--i:1">
+          <div class="num">2</div>
+          <div>
+            <h3>مواد متكاملة</h3>
+            <p>شرح + ملازم + اختبارات لكل مادة، كل ما تحتاجه موجود في مكان واحد.</p>
+          </div>
+        </div>
+        <div class="why-card reveal" style="--i:2">
+          <div class="num">3</div>
+          <div>
+            <h3>متابعة دقيقة</h3>
+            <p>نتائج الاختبارات ونسبة التقدم متاحة لحظة بلحظة في ملفك الشخصي.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEACHERS -->
+    <section class="section" id="teachers">
+      <div class="section-head reveal">
+        <span class="tag">نخبة المدرسين</span>
+        <h2>تعرف على مدرسيك في سنتر النجاح</h2>
+        <p>نخبة من المدرسين المتخصصين في كل المراحل الدراسية، كل مدرس له كورساته واختباراته الخاصة.</p>
+      </div>
+      <div class="teachers reveal-stagger" id="teachersGrid">
+        <!-- يتم ملؤها تلقائيًا من teachers.js -->
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="section" id="testimonials">
+      <div class="section-head reveal">
+        <span class="tag">آراء المسجلين</span>
+        <h2>طلاب النجاح بيقولوا إيه</h2>
+        <p>تجارب حقيقية من طلاب استخدموا المنصة في مذاكرتهم اليومية.</p>
+      </div>
+      <div class="testimonials reveal-stagger">
+        <div class="testimonial-card t1 reveal" style="--i:0">
+          <div class="stars">★★★★★</div>
+          <p>المنصة سهلت عليّ المذاكرة كتير، الدروس واضحة والاختبارات بتساعدني أعرف نقاط ضعفي وأركز عليها.</p>
+          <div class="person">
+            <div class="avatar">🧑</div>
+            <div><b>محمود أحمد</b><span>الصف الثالث الثانوي</span></div>
+          </div>
+        </div>
+        <div class="testimonial-card t2 reveal" style="--i:1">
+          <div class="stars">★★★★★</div>
+          <p>بحب إني أقدر أرجع للدرس في أي وقت وأشوف نتائج الاختبارات بسهولة، فعلاً منصة عملية جدًا.</p>
+          <div class="person">
+            <div class="avatar">👧</div>
+            <div><b>مريم سامي</b><span>الصف الثاني الإعدادي</span></div>
+          </div>
+        </div>
+        <div class="testimonial-card t3 reveal" style="--i:2">
+          <div class="stars">★★★★★</div>
+          <p>التصميم بسيط وسريع، وكل مادة فيها كل اللي محتاجه من شرح وملازم واختبارات في حتة واحدة.</p>
+          <div class="person">
+            <div class="avatar">🧒</div>
+            <div><b>يوسف كريم</b><span>الصف الخامس الابتدائي</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COURSES -->
+    <section class="section" id="courses">
+      <div class="section-head reveal">
+        <span class="tag">آخر الكورسات المضافة</span>
+        <h2>أحدث الكورسات في سنتر النجاح</h2>
+        <p>آخر 5 كورسات تمت إضافتها من نخبة المدرسين، يتم تحديثها أولًا بأول.</p>
+      </div>
+      <div class="courses reveal-stagger" id="latestCoursesGrid">
+        <div class="loading-state" style="grid-column:1/-1;">جاري تحميل أحدث الكورسات...</div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section" id="about">
+      <div class="cta-strip reveal">
+        <div>
+          <h2>جاهز تبدأ رحلتك مع سنتر النجاح؟</h2>
+          <p>سجل حسابك دلوقتي وابدأ أول درس في دقائق.</p>
+        </div>
+        <button class="btn btn-gold" onclick="openModal('register')">إنشاء حساب جديد</button>
+      </div>
+    </section>
+
+    <!-- APP DOWNLOAD -->
+    <section class="section" id="app">
+      <div class="app-download reveal">
+        <div>
+          <h2>طبّق منصة النجاح على موبايلك</h2>
+          <p>التطبيق قريبًا على Google Play، عشان تتابع دروسك واختباراتك بسهولة من تليفونك في أي وقت.</p>
+        </div>
+        <div class="badges">
+          <a class="store-badge" href="#" onclick="return false;">
+            <span class="soon-tag">قريبًا</span>
+            <span class="ic">▶</span>
+            <span class="txt"><small>احصل عليه من</small><b>Google Play</b></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="brand">
+    <div class="mark">
+      <img src="splash.PNG" alt="سنتر النجاح"
+           onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'fallback\\'>س</div>';">
+    </div>
+    سنتر النجاح
+  </div>
+  جميع الحقوق محفوظة © سنتر النجاح التعليمي 2026
+</footer>
+
+<!-- LOGIN / REGISTER MODAL -->
+<div class="modal-overlay" id="authModal" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <button class="close" onclick="closeModal()">✕</button>
+    <div class="mark">ن</div>
+    <h2 id="modalTitle">أهلاً بيك في النجاح</h2>
+    <p class="sub" id="modalSub">سجل دخولك للوصول إلى كورساتك واختباراتك</p>
+
+    <div class="tabs">
+      <div class="tab" id="tabLogin" onclick="switchTab('login')">تسجيل الدخول</div>
+      <div class="tab" id="tabRegister" onclick="switchTab('register')">حساب جديد</div>
+    </div>
+
+    <div id="authMsg" style="display:none; margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px; font-weight:600; text-align:center;"></div>
+
+
+    <!-- Login form -->
+    <form id="loginForm">
+      <div class="field">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="loginPhone" placeholder="مثال: 01012345678" required>
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" required>
+      </div>
+      <div class="field-row">
+        <label class="remember"><input type="checkbox"> تذكرني</label>
+        <a href="#" onclick="switchTab('forgot'); return false;">نسيت كلمة المرور؟</a>
+      </div>
+      <button type="submit" class="btn btn-solid" id="loginBtn">دخول</button>
+    </form>
+
+    <!-- Forgot password form -->
+    <form id="forgotForm" style="display:none">
+      <p style="font-size:13px; color: var(--ink-soft); margin-bottom:18px; line-height:1.8;">
+        اكتب رقم الهاتف المسجل بحسابك، وهنبعت لينك إعادة تعيين كلمة المرور على الإيميل الاحتياطي المرتبط بحسابك (لو مسجل).
+      </p>
+      <div class="field">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="forgotPhone" placeholder="مثال: 01012345678" required>
+      </div>
+      <button type="submit" class="btn btn-solid" id="forgotBtn">إرسال لينك إعادة التعيين</button>
+    </form>
+
+    <!-- Register form -->
+    <form id="registerForm" style="display:none">
+      <div class="field">
+        <label>الاسم الكامل</label>
+        <input type="text" id="regName" placeholder="اكتب اسمك" required>
+      </div>
+      <div class="field">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="regPhone" placeholder="مثال: 01012345678" required>
+      </div>
+      <div class="field">
+        <label>الصف الدراسي</label>
+        <select id="regGrade" required>
+          <option value="" disabled selected>اختر الصف الدراسي</option>
+          <optgroup label="المرحلة الابتدائية">
+            <option>الصف الأول الابتدائي</option>
+            <option>الصف الثاني الابتدائي</option>
+            <option>الصف الثالث الابتدائي</option>
+            <option>الصف الرابع الابتدائي</option>
+            <option>الصف الخامس الابتدائي</option>
+            <option>الصف السادس الابتدائي</option>
+          </optgroup>
+          <optgroup label="المرحلة الإعدادية">
+            <option>الصف الأول الإعدادي</option>
+            <option>الصف الثاني الإعدادي</option>
+            <option>الصف الثالث الإعدادي</option>
+          </optgroup>
+          <optgroup label="المرحلة الثانوية">
+            <option>الصف الأول الثانوي</option>
+            <option>الصف الثاني الثانوي</option>
+            <option>الصف الثالث الثانوي</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>المدرس</label>
+        <select id="regTeacher" required>
+          <option value="" disabled selected>اختر المدرس</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>الإيميل (احتياطي لو نسيت كلمة المرور - اختياري)</label>
+        <input type="email" id="regEmail" placeholder="example@gmail.com">
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="regPassword" placeholder="•••••••• (6 أحرف على الأقل)" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-solid" id="registerBtn" style="margin-top:6px">إنشاء الحساب</button>
+    </form>
+
+    <div class="modal-foot" id="modalFoot">
+      لسه مالك حساب؟ <a href="#" onclick="switchTab('register'); return false;">سجل دلوقتي</a>
+    </div>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  function openModal(type){
+    document.getElementById('authModal').classList.add('open');
+    switchTab(type || 'login');
+  }
+  function closeModal(){
+    document.getElementById('authModal').classList.remove('open');
+  }
+  function switchTab(type){
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const forgotForm = document.getElementById('forgotForm');
+    const tabs = document.querySelector('.tabs');
+    const title = document.getElementById('modalTitle');
+    const sub = document.getElementById('modalSub');
+    const foot = document.getElementById('modalFoot');
+    hideMsg();
+
+    if(type === 'login'){
+      tabs.style.display = 'flex';
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+      forgotForm.style.display = 'none';
+      title.textContent = 'أهلاً بيك في النجاح';
+      sub.textContent = 'سجل دخولك للوصول إلى كورساتك واختباراتك';
+      foot.innerHTML = 'لسه مالك حساب؟ <a href="#" onclick="switchTab(\'register\'); return false;">سجل دلوقتي</a>';
+    } else if(type === 'register'){
+      tabs.style.display = 'flex';
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      registerForm.style.display = 'block';
+      loginForm.style.display = 'none';
+      forgotForm.style.display = 'none';
+      title.textContent = 'انضم لسنتر النجاح';
+      sub.textContent = 'أنشئ حسابك وابدأ أول درس دلوقتي';
+      foot.innerHTML = 'عندك حساب فعلاً؟ <a href="#" onclick="switchTab(\'login\'); return false;">تسجيل الدخول</a>';
+    } else if(type === 'forgot'){
+      tabs.style.display = 'none';
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'none';
+      forgotForm.style.display = 'block';
+      title.textContent = 'نسيت كلمة المرور؟';
+      sub.textContent = 'هنساعدك تستعيد حسابك خلال دقائق';
+      foot.innerHTML = '<a href="#" onclick="switchTab(\'login\'); return false;">رجوع لتسجيل الدخول</a>';
+    }
+  }
+
+  function showMsg(text, type){
+    const box = document.getElementById('authMsg');
+    box.textContent = text;
+    box.style.display = 'block';
+    if(type === 'error'){
+      box.style.background = 'rgba(224,98,62,.1)';
+      box.style.color = '#c1462b';
+    } else {
+      box.style.background = 'rgba(31,111,92,.1)';
+      box.style.color = '#0F3D33';
+    }
+  }
+  function hideMsg(){
+    document.getElementById('authMsg').style.display = 'none';
+  }
+
+  function setBtnLoading(btn, loading, normalText){
+    btn.disabled = loading;
+    btn.textContent = loading ? 'لحظات...' : normalText;
+  }
+
+  async function redirectByRole(uid){
+    const profile = await getUserProfile(uid);
+    if(profile && profile.role === 'admin'){
+      window.location.href = 'admin.html';
+    } else {
+      window.location.href = 'dashboard.html';
+    }
+  }
+
+  // تسجيل الدخول
+  document.getElementById('loginForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    hideMsg();
+    const phone = document.getElementById('loginPhone').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+    setBtnLoading(btn, true);
+    try{
+      const user = await loginWithPhone(phone, password);
+      showMsg('تم تسجيل الدخول بنجاح، جاري التحويل...', 'success');
+      await redirectByRole(user.uid);
+    } catch(err){
+      showMsg(translateAuthError(err), 'error');
+    } finally{
+      setBtnLoading(btn, false, 'دخول');
+    }
+  });
+
+  // نسيت كلمة المرور
+  document.getElementById('forgotForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    hideMsg();
+    const phone = document.getElementById('forgotPhone').value.trim();
+    const btn = document.getElementById('forgotBtn');
+    setBtnLoading(btn, true);
+    try{
+      const sentTo = await sendResetLinkByPhone(phone);
+      const masked = sentTo.replace(/(.{2}).+(@.+)/, '$1***$2');
+      showMsg('تم إرسال لينك إعادة التعيين إلى ' + masked + '. افتح بريدك واتبع التعليمات.', 'success');
+    } catch(err){
+      showMsg(translateAuthError(err), 'error');
+    } finally{
+      setBtnLoading(btn, false, 'إرسال لينك إعادة التعيين');
+    }
+  });
+
+  // إنشاء حساب جديد
+  document.getElementById('registerForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    hideMsg();
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const grade = document.getElementById('regGrade').value.trim();
+    const teacherId = document.getElementById('regTeacher').value;
+    const realEmail = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const btn = document.getElementById('registerBtn');
+
+    if(password.length < 6){
+      showMsg('كلمة المرور لازم تكون 6 أحرف على الأقل.', 'error');
+      return;
+    }
+
+    setBtnLoading(btn, true);
+    try{
+      const result = await registerStudent({ name, phone, grade, teacherId, realEmail, password });
+      if(realEmail && result.emailLinkFailed){
+        showMsg('تم إنشاء الحساب، لكن تعذر ربط الإيميل الاحتياطي (قد يكون مستخدم من قبل). جاري التحويل...', 'success');
+      } else {
+        showMsg('تم إنشاء الحساب بنجاح، جاري التحويل...', 'success');
+      }
+      await redirectByRole(result.uid);
+    } catch(err){
+      showMsg(translateAuthError(err), 'error');
+    } finally{
+      setBtnLoading(btn, false, 'إنشاء الحساب');
+    }
+  });
+
+  // لو المستخدم مسجل دخول بالفعل وفتح الصفحة الرئيسية، حوّله مباشرة
+  auth.onAuthStateChanged(async (user)=>{
+    if(user){
+      const profile = await getUserProfile(user.uid);
+      if(profile){
+        // لا تحوّل تلقائيًا إلا لو فتح المودال - نسيب المستخدم يشوف الصفحة الرئيسية
+      }
+    }
+  });
+
+  // ملء قائمة المدرسين في فورم التسجيل
+  (function populateTeachers(){
+    const select = document.getElementById('regTeacher');
+    TEACHERS.forEach(t=>{
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      select.appendChild(opt);
+    });
+  })();
+
+  // عرض بطاقات المدرسين بصورهم في القسم الترويجي
+  (function renderTeacherCards(){
+    const grid = document.getElementById('teachersGrid');
+    if(!grid) return;
+    TEACHERS.forEach((t, i)=>{
+      const num = i + 1; // 1.PNG إلى 8.PNG بنفس ترتيب TEACHERS
+      const card = document.createElement('div');
+      card.className = 'teacher-card reveal';
+      card.style.setProperty('--i', i);
+      card.innerHTML = `
+        <div class="photo-wrap">
+          <img src="${num}.PNG" alt="${t.name}" loading="lazy"
+               onerror="this.onerror=null; this.src='${num}.png'; this.onerror=function(){ this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>👨‍🏫</div>';}">
+        </div>
+        <div class="info">
+          <h3>${t.name}</h3>
+          <span>مدرس سنتر النجاح</span>
+        </div>`;
+      grid.appendChild(card);
+    });
+  })();
+
+  // ===== آخر 5 كورسات من Firestore =====
+  async function loadLatestCourses(){
+    const grid = document.getElementById('latestCoursesGrid');
+    if(!grid) return;
+
+    const gradients = [
+      'linear-gradient(150deg, var(--teal), var(--teal-deep))',
+      'linear-gradient(150deg, var(--gold), var(--gold-deep))',
+      'linear-gradient(150deg, var(--coral), var(--coral-deep))',
+      'linear-gradient(150deg, #4a8f7c, var(--teal))',
+      'linear-gradient(150deg, #5a7bc4, #2f4f9e)',
+    ];
+
+    try{
+      const snap = await db.collection('courses')
+        .orderBy('createdAt','desc')
+        .limit(5)
+        .get();
+
+      if(snap.empty){
+        grid.innerHTML = `
+          <div style="grid-column:1/-1; text-align:center; color:var(--ink-soft); padding:40px 0;">
+            <div style="font-size:40px; margin-bottom:12px;">📭</div>
+            <div>لسه مفيش كورسات متاحة، تابعونا قريبًا!</div>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = '';
+      let i = 0;
+      snap.forEach(doc=>{
+        const c = doc.data();
+        const grad = gradients[i % gradients.length];
+        const card = document.createElement('div');
+        card.className = 'course-card reveal';
+        card.style.setProperty('--i', i);
+        card.innerHTML = `
+          <div class="course-thumb" style="background:${grad}">${c.icon || '📘'}</div>
+          <div class="course-body">
+            <span class="lvl">${c.grade || 'جميع المراحل'}</span>
+            <h3>${c.title || 'كورس'}</h3>
+            <p>${c.teacherName || ''}</p>
+          </div>`;
+        grid.appendChild(card);
+        i++;
+      });
+    }catch(e){
+      console.error('تعذر تحميل الكورسات:', e);
+      grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--ink-soft); padding:40px 0;">تعذر تحميل الكورسات الآن.</div>`;
+    }
+  }
+
+  // تشغيل بعد تحميل Firebase
+  if(typeof firebase !== 'undefined' && typeof db !== 'undefined'){
+    loadLatestCourses();
+  } else {
+    window.addEventListener('load', ()=> setTimeout(loadLatestCourses, 800));
+  }
+
+  // ===== Splash Screen =====
+  (function initSplash(){
+    const splash = document.getElementById('splash');
+    if(!splash) return;
+
+    // بعد 2.8 ثانية (بعد ما شريط التحميل يكمل) ابدأ الاختفاء
+    setTimeout(()=>{
+      splash.classList.add('hidden');
+      document.body.classList.remove('splash-active');
+
+      // بعد ما animation الاختفاء تخلص (700ms)، شيل العنصر من DOM كلياً
+      setTimeout(()=>{
+        splash.classList.add('done');
+      }, 700);
+    }, 2800);
+  })();
+
+  // ===== Scroll reveal =====
+  (function scrollReveal(){
+    const items = document.querySelectorAll('.reveal');
+    if(!items.length) return;
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    items.forEach(el=> io.observe(el));
+  })();
+
+  // ===== Hero 3D scene: follows cursor on desktop =====
+  (function heroSceneTilt(){
+    const scene = document.getElementById('heroScene');
+    const stage = document.getElementById('sceneStage');
+    if(!scene || !stage) return;
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if(window.matchMedia('(max-width: 980px)').matches) return;
+
+    let rafId = null;
+    scene.addEventListener('mousemove', (e)=>{
+      const rect = scene.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      if(rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(()=>{
+        stage.style.animation = 'none';
+        stage.style.transform = `rotateY(${-16 - x*14}deg) rotateX(${8 + y*10}deg)`;
+      });
+    });
+    scene.addEventListener('mouseleave', ()=>{
+      stage.style.transform = '';
+      stage.style.animation = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة الاختبارات - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  .page-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+
+  .quiz-card{
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; display:flex; align-items:center; gap:16px; margin-bottom:12px;
+  }
+  .quiz-card .ic{
+    width:48px; height:48px; border-radius:13px; flex-shrink:0;
+    background: linear-gradient(135deg, var(--coral), var(--coral-deep, #B8492F)); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+  }
+  .quiz-card .body{ flex:1; min-width:0; }
+  .quiz-card h3{ font-size:15px; color: var(--teal-deep); font-weight:800; margin-bottom:4px; }
+  .quiz-card span{ font-size:12.5px; color: var(--ink-soft); }
+  .quiz-actions{ display:flex; gap:8px; flex-shrink:0; }
+
+  .question-card{
+    background: var(--bg-soft); border-radius: 14px; padding: 18px; margin-bottom: 14px;
+    position: relative;
+  }
+  .question-card .q-num{
+    font-size: 12.5px; font-weight:800; color: var(--teal-deep); margin-bottom:10px; font-family:'Cairo',sans-serif;
+  }
+  .option-row{ display:flex; align-items:center; gap:10px; margin-bottom: 8px; }
+  .option-row input[type="text"]{ flex:1; }
+  .option-row input[type="radio"]{ accent-color: var(--teal); width:18px; height:18px; flex-shrink:0; }
+  .remove-q-btn{
+    position:absolute; top:14px; left:14px;
+    background:none; border:none; cursor:pointer; color: var(--coral); font-size:16px;
+  }
+  .add-q-btn{ width:100%; padding: 12px 0; border-radius:12px; border: 1.5px dashed var(--line); background: transparent; color: var(--teal-deep); font-weight:700; cursor:pointer; font-family:'Cairo',sans-serif; }
+  .add-q-btn:hover{ background: var(--bg-soft); }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">ن</div>
+      لوحة المدرس
+    </div>
+    <a class="nav-item" href="admin.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="admin-courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="admin-lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item active" href="admin-quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="admin-students.html"><span class="ic">👥</span><span>طلابي والنتائج</span></a>
+    <a class="nav-item" href="admin-profile.html"><span class="ic">⚙️</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>الاختبارات</h1>
+          <div class="page-sub">إدارة اختبارات كورساتك</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">👨‍🏫</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userRole">مدرس</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div class="field" style="margin:0; min-width:220px;">
+          <select id="courseFilter" onchange="loadQuizzes()">
+            <option value="">كل الكورسات</option>
+          </select>
+        </div>
+        <button class="btn btn-solid" onclick="openQuizModal()">➕ اختبار جديد</button>
+      </div>
+
+      <div id="quizzesList">
+        <div class="loading-state">جاري تحميل الاختبارات...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quiz Modal -->
+<div class="modal-overlay" id="quizModal" onclick="if(event.target===this) closeQuizModal()">
+  <div class="modal-box modal-lg">
+    <button class="close" onclick="closeQuizModal()">✕</button>
+    <h2 id="quizModalTitle">اختبار جديد</h2>
+    <form id="quizForm">
+      <input type="hidden" id="quizId">
+      <div class="field">
+        <label>الكورس</label>
+        <select id="quizCourse" required>
+          <option value="" disabled selected>اختر الكورس</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>عنوان الاختبار</label>
+        <input type="text" id="quizTitle" placeholder="مثال: اختبار الوحدة الأولى" required>
+      </div>
+
+      <div class="field">
+        <label>الأسئلة</label>
+        <div id="questionsList"></div>
+        <button type="button" class="add-q-btn" onclick="addQuestion()">➕ إضافة سؤال</button>
+      </div>
+
+      <button type="submit" class="btn btn-solid" id="quizSubmitBtn" style="width:100%; margin-top:14px;">حفظ الاختبار</button>
+      <div id="quizFormMsg" class="form-msg"></div>
+    </form>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  let currentProfile = null;
+  let myCourses = [];
+  let questionCounter = 0;
+
+  requireAuth(async (user, profile)=>{
+    currentProfile = profile;
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('avatarChip').textContent = profile.avatar || '👨‍🏫';
+    await loadMyCourses();
+    loadQuizzes();
+  }, 'admin');
+
+  async function loadMyCourses(){
+    try{
+      const snap = await db.collection('courses').where('teacherId','==', currentProfile.teacherId).get();
+      myCourses = [];
+      snap.forEach(doc=> myCourses.push({ id: doc.id, ...doc.data() }));
+
+      const filterSelect = document.getElementById('courseFilter');
+      const quizCourseSelect = document.getElementById('quizCourse');
+      myCourses.forEach(c=>{
+        filterSelect.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)}</option>`;
+        quizCourseSelect.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)}</option>`;
+      });
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  async function loadQuizzes(){
+    const list = document.getElementById('quizzesList');
+    const filterCourseId = document.getElementById('courseFilter').value;
+
+    if(myCourses.length === 0){
+      list.innerHTML = `<div class="empty-state"><div class="ic">📭</div><h3>لازم تضيف كورس أولاً</h3><p>روح صفحة الكورسات وأضف كورس قبل ما تضيف اختبارات.</p></div>`;
+      return;
+    }
+
+    try{
+      const courseIds = filterCourseId ? [filterCourseId] : myCourses.map(c=> c.id).slice(0,30);
+      if(courseIds.length === 0){
+        list.innerHTML = `<div class="empty-state"><div class="ic">📭</div><h3>لا توجد اختبارات</h3></div>`;
+        return;
+      }
+      const snap = await db.collection('quizzes').where('courseId','in', courseIds).get();
+
+      if(snap.empty){
+        list.innerHTML = `<div class="empty-state"><div class="ic">📭</div><h3>لسه مفيش اختبارات</h3><p>ابدأ بإضافة أول اختبار بالضغط على "اختبار جديد".</p></div>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      snap.forEach(doc=>{
+        const q = doc.data();
+        const course = myCourses.find(c=> c.id === q.courseId);
+        const qCount = (q.questions || []).length;
+        list.innerHTML += `
+          <div class="quiz-card">
+            <div class="ic">📝</div>
+            <div class="body">
+              <h3>${escapeHtml(q.title || 'اختبار')}</h3>
+              <span>${course ? escapeHtml(course.title) : ''} · ${qCount} سؤال</span>
+            </div>
+            <div class="quiz-actions">
+              <button class="icon-btn" onclick='editQuiz("${doc.id}")'>✏️</button>
+              <button class="icon-btn danger" onclick='deleteQuiz("${doc.id}", "${escapeHtml(q.title||"")}")'>🗑️</button>
+            </div>
+          </div>`;
+      });
+    }catch(e){
+      list.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الاختبارات الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+
+  function openQuizModal(){
+    document.getElementById('quizModalTitle').textContent = 'اختبار جديد';
+    document.getElementById('quizId').value = '';
+    document.getElementById('quizTitle').value = '';
+    document.getElementById('quizCourse').value = '';
+    document.getElementById('questionsList').innerHTML = '';
+    questionCounter = 0;
+    hideFormMsg();
+    addQuestion(); // سؤال واحد كبداية
+    document.getElementById('quizModal').classList.add('open');
+  }
+
+  function closeQuizModal(){
+    document.getElementById('quizModal').classList.remove('open');
+  }
+
+  function addQuestion(questionData){
+    const qId = 'q' + (questionCounter++);
+    const wrap = document.createElement('div');
+    wrap.className = 'question-card';
+    wrap.dataset.qid = qId;
+
+    const text = questionData ? questionData.text : '';
+    const options = questionData ? questionData.options : ['', '', '', ''];
+    const correct = questionData ? questionData.correct : 0;
+
+    wrap.innerHTML = `
+      <button type="button" class="remove-q-btn" onclick="this.closest('.question-card').remove()">🗑️</button>
+      <div class="q-num">سؤال</div>
+      <div class="field">
+        <input type="text" class="q-text" placeholder="نص السؤال" value="${escapeHtml(text)}" required>
+      </div>
+      ${options.map((opt, i)=> `
+        <div class="option-row">
+          <input type="radio" name="correct-${qId}" class="q-correct" value="${i}" ${i === correct ? 'checked' : ''}>
+          <input type="text" class="q-option" placeholder="اختيار ${i+1}" value="${escapeHtml(opt)}" required>
+        </div>`).join('')}
+    `;
+    document.getElementById('questionsList').appendChild(wrap);
+  }
+
+  async function editQuiz(id){
+    try{
+      const doc = await db.collection('quizzes').doc(id).get();
+      if(!doc.exists) return;
+      const q = doc.data();
+
+      document.getElementById('quizModalTitle').textContent = 'تعديل الاختبار';
+      document.getElementById('quizId').value = id;
+      document.getElementById('quizTitle').value = q.title || '';
+      document.getElementById('quizCourse').value = q.courseId || '';
+      document.getElementById('questionsList').innerHTML = '';
+      questionCounter = 0;
+
+      (q.questions || []).forEach(question=> addQuestion(question));
+      if((q.questions || []).length === 0) addQuestion();
+
+      hideFormMsg();
+      document.getElementById('quizModal').classList.add('open');
+    }catch(e){
+      alert('تعذر تحميل بيانات الاختبار.');
+      console.error(e);
+    }
+  }
+
+  async function deleteQuiz(id, title){
+    if(!confirm(`هل أنت متأكد من حذف اختبار "${title}"؟`)) return;
+    try{
+      await db.collection('quizzes').doc(id).delete();
+      loadQuizzes();
+    }catch(e){
+      alert('حدث خطأ أثناء الحذف، حاول مرة أخرى.');
+      console.error(e);
+    }
+  }
+
+  function showFormMsg(text, type){
+    const box = document.getElementById('quizFormMsg');
+    box.textContent = text;
+    box.className = 'form-msg show ' + type;
+  }
+  function hideFormMsg(){
+    document.getElementById('quizFormMsg').className = 'form-msg';
+  }
+
+  document.getElementById('quizForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    hideFormMsg();
+
+    const id = document.getElementById('quizId').value;
+    const title = document.getElementById('quizTitle').value.trim();
+    const courseId = document.getElementById('quizCourse').value;
+    const btn = document.getElementById('quizSubmitBtn');
+
+    if(!title || !courseId){
+      showFormMsg('من فضلك اكمل الحقول المطلوبة.', 'error');
+      return;
+    }
+
+    const questionCards = document.querySelectorAll('.question-card');
+    if(questionCards.length === 0){
+      showFormMsg('لازم تضيف سؤال واحد على الأقل.', 'error');
+      return;
+    }
+
+    const questions = [];
+    let valid = true;
+    questionCards.forEach(card=>{
+      const text = card.querySelector('.q-text').value.trim();
+      const optionInputs = card.querySelectorAll('.q-option');
+      const options = Array.from(optionInputs).map(i=> i.value.trim());
+      const correctInput = card.querySelector('.q-correct:checked');
+      const correct = correctInput ? parseInt(correctInput.value) : null;
+
+      if(!text || options.some(o=> !o) || correct === null){
+        valid = false;
+      }
+      questions.push({ text, options, correct });
+    });
+
+    if(!valid){
+      showFormMsg('لازم كل سؤال يكون له نص، 4 اختيارات، وإجابة صحيحة محددة.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+
+    try{
+      const data = {
+        title, courseId, questions,
+        teacherId: currentProfile.teacherId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      if(id){
+        await db.collection('quizzes').doc(id).update(data);
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('quizzes').add(data);
+      }
+
+      closeQuizModal();
+      loadQuizzes();
+    }catch(e){
+      showFormMsg('حدث خطأ أثناء الحفظ، حاول مرة أخرى.', 'error');
+      console.error(e);
+    } finally{
+      btn.disabled = false;
+      btn.textContent = 'حفظ الاختبار';
+    }
+  });
+</script>
+
+</body>
+</html>

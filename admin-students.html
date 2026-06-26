@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>طلابي والنتائج - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  .page-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+  .tabs-row{ display:flex; gap:10px; margin-bottom:22px; }
+  .tab-btn{
+    padding: 10px 22px; border-radius:999px;
+    border: 1.5px solid var(--line); background: var(--card);
+    font-size:13.5px; font-weight:700; color: var(--ink-soft);
+    cursor:pointer; transition: all .2s; font-family:'Cairo',sans-serif;
+  }
+  .tab-btn.active{ background: var(--teal-deep); color:#fff; border-color: var(--teal-deep); }
+
+  .student-row{ display:flex; align-items:center; gap:14px; }
+  .student-row .avatar{
+    width:38px; height:38px; border-radius:50%;
+    background: linear-gradient(135deg, var(--teal), var(--gold));
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; color:#fff; flex-shrink:0;
+  }
+  .score-tag{ font-weight:800; font-family:'Cairo',sans-serif; }
+  .score-good{ color: var(--teal-deep); }
+  .score-mid{ color: var(--gold); }
+  .score-low{ color: var(--coral); }
+
+  .search-box{ max-width: 320px; }
+
+  .access-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:800; font-family:'Cairo',sans-serif;
+  }
+  .access-badge.on{ background: rgba(31,111,92,.12); color: var(--teal-deep); }
+  .access-badge.off{ background: rgba(214,90,77,.12); color: var(--coral); }
+  .access-badge.expired{ background: rgba(212,160,23,.14); color: var(--gold); }
+
+  .access-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .access-btn{
+    padding:6px 14px; border-radius:10px; border:1.5px solid var(--line);
+    background: var(--card); font-size:12px; font-weight:700; cursor:pointer;
+    font-family:'Cairo',sans-serif; color: var(--teal-deep); transition: all .15s;
+  }
+  .access-btn:hover{ border-color: var(--teal); }
+  .access-btn.revoke{ color: var(--coral); }
+  .access-date{ font-size:11.5px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">ن</div>
+      لوحة المدرس
+    </div>
+    <a class="nav-item" href="admin.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="admin-courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="admin-lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="admin-quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item active" href="admin-students.html"><span class="ic">👥</span><span>طلابي والنتائج</span></a>
+    <a class="nav-item" href="admin-profile.html"><span class="ic">⚙️</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>طلابي والنتائج</h1>
+          <div class="page-sub">متابعة الطلاب المسجلين معك ونتائجهم</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">👨‍🏫</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userRole">مدرس</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="grid grid-3" style="margin-bottom:26px;">
+        <div class="stat-card s1">
+          <div class="ic">👥</div>
+          <div><b id="statStudents">0</b><span>طالب مسجل</span></div>
+        </div>
+        <div class="stat-card s2">
+          <div class="ic">📝</div>
+          <div><b id="statAttempts">0</b><span>اختبار تم حله</span></div>
+        </div>
+        <div class="stat-card s3">
+          <div class="ic">📊</div>
+          <div><b id="statAvg">0%</b><span>متوسط النتائج</span></div>
+        </div>
+      </div>
+
+      <div class="tabs-row">
+        <div class="tab-btn active" data-tab="students" onclick="switchView('students')">قائمة الطلاب</div>
+        <div class="tab-btn" data-tab="results" onclick="switchView('results')">سجل النتائج</div>
+      </div>
+
+      <!-- Students view -->
+      <div id="studentsView">
+        <div class="field search-box" style="margin-bottom:16px;">
+          <input type="text" id="studentSearch" placeholder="بحث بالاسم أو رقم الهاتف..." oninput="renderStudents()">
+        </div>
+        <div class="card" style="padding: 6px 18px;">
+          <table class="data-table" id="studentsTable">
+            <thead><tr><th>الطالب</th><th>رقم الهاتف</th><th>الصف الدراسي</th><th>تاريخ التسجيل</th><th>صلاحية مشاهدة الفيديوهات</th></tr></thead>
+            <tbody id="studentsBody">
+              <tr><td colspan="5" style="text-align:center; color: var(--ink-soft); padding:30px 0;">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Results view -->
+      <div id="resultsView" style="display:none;">
+        <div class="field search-box" style="margin-bottom:16px;">
+          <select id="quizFilterResults" onchange="renderResults()">
+            <option value="">كل الاختبارات</option>
+          </select>
+        </div>
+        <div class="card" style="padding: 6px 18px;">
+          <table class="data-table" id="resultsTable">
+            <thead><tr><th>الطالب</th><th>الاختبار</th><th>النتيجة</th><th>النسبة</th><th>التاريخ</th></tr></thead>
+            <tbody id="resultsBody">
+              <tr><td colspan="5" style="text-align:center; color: var(--ink-soft); padding:30px 0;">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Video Access Modal -->
+<div class="modal-overlay" id="accessModal" onclick="if(event.target===this) closeAccessModal()">
+  <div class="modal-box">
+    <button class="close" onclick="closeAccessModal()">✕</button>
+    <h2>تفعيل صلاحية مشاهدة الفيديوهات</h2>
+    <p style="font-size:13px; color: var(--ink-soft); margin-bottom:16px; line-height:1.8;">
+      هتفعّل صلاحية مشاهدة كل فيديوهات دروسك للطالب <b id="accessStudentName" style="color: var(--teal-deep);"></b> لمدة محددة.
+    </p>
+    <div class="field">
+      <label>مدة الصلاحية</label>
+      <select id="accessDuration">
+        <option value="7">أسبوع (7 أيام)</option>
+        <option value="30" selected>شهر (30 يوم)</option>
+        <option value="90">3 شهور (90 يوم)</option>
+        <option value="365">سنة كاملة</option>
+      </select>
+    </div>
+    <button type="button" class="btn btn-solid" style="width:100%; margin-top:8px;" onclick="confirmGrantAccess()">تفعيل الصلاحية</button>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  let currentProfile = null;
+  let allStudents = [];
+  let allResults = [];
+  let myQuizzes = [];
+  let pendingAccessStudentId = null;
+
+  requireAuth(async (user, profile)=>{
+    currentProfile = profile;
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('avatarChip').textContent = profile.avatar || '👨‍🏫';
+
+    await loadStudents();
+    await loadQuizzesAndResults();
+    updateStats();
+  }, 'admin');
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function switchView(tab){
+    document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('studentsView').style.display = tab === 'students' ? 'block' : 'none';
+    document.getElementById('resultsView').style.display = tab === 'results' ? 'block' : 'none';
+  }
+
+  async function loadStudents(){
+    try{
+      const snap = await db.collection('users')
+        .where('teacherId','==', currentProfile.teacherId)
+        .where('role','==','student')
+        .get();
+      allStudents = [];
+      snap.forEach(doc=> allStudents.push({ id: doc.id, ...doc.data() }));
+      renderStudents();
+    }catch(e){
+      document.getElementById('studentsBody').innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--ink-soft); padding:30px 0;">حدث خطأ في التحميل</td></tr>`;
+      console.error(e);
+    }
+  }
+
+  function getAccessStatus(s){
+    if(!s.videoAccess){
+      return { state: 'off', label: 'غير مفعّلة' };
+    }
+    const expiry = s.videoAccessExpiry && s.videoAccessExpiry.toDate ? s.videoAccessExpiry.toDate() : null;
+    if(expiry && expiry.getTime() < Date.now()){
+      return { state: 'expired', label: 'منتهية', expiry };
+    }
+    return { state: 'on', label: 'مفعّلة', expiry };
+  }
+
+  function renderStudents(){
+    const tbody = document.getElementById('studentsBody');
+    const query = document.getElementById('studentSearch').value.trim().toLowerCase();
+
+    const filtered = allStudents.filter(s=>
+      !query || (s.name||'').toLowerCase().includes(query) || (s.phone||'').includes(query)
+    );
+
+    if(filtered.length === 0){
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--ink-soft); padding:30px 0;">لا يوجد طلاب مطابقين</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(s=>{
+      const dateStr = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleDateString('ar-EG') : '-';
+      const access = getAccessStatus(s);
+      const expiryStr = access.expiry ? access.expiry.toLocaleDateString('ar-EG') : '';
+
+      let badgeHtml = `<span class="access-badge ${access.state}">${access.state === 'on' ? '✅' : access.state === 'expired' ? '⏳' : '🚫'} ${access.label}</span>`;
+      let dateLine = expiryStr ? `<div class="access-date">${access.state === 'expired' ? 'انتهت في' : 'حتى'} ${expiryStr}</div>` : '';
+
+      let actionsHtml = '';
+      if(access.state === 'on'){
+        actionsHtml = `<button class="access-btn revoke" onclick="revokeVideoAccess('${s.id}')">إلغاء</button>
+                       <button class="access-btn" onclick="openAccessModal('${s.id}','${escapeHtml(s.name||'')}')">تمديد</button>`;
+      } else {
+        actionsHtml = `<button class="access-btn" onclick="openAccessModal('${s.id}','${escapeHtml(s.name||'')}')">تفعيل</button>`;
+      }
+
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div class="student-row">
+              <div class="avatar">${s.avatar || '🎓'}</div>
+              <span>${escapeHtml(s.name || '-')}</span>
+            </div>
+          </td>
+          <td>${escapeHtml(s.phone || '-')}</td>
+          <td>${escapeHtml(s.grade || '-')}</td>
+          <td>${dateStr}</td>
+          <td>
+            <div class="access-actions">
+              <div>${badgeHtml}${dateLine}</div>
+              ${actionsHtml}
+            </div>
+          </td>
+        </tr>`;
+    });
+  }
+
+  function openAccessModal(studentId, studentName){
+    pendingAccessStudentId = studentId;
+    document.getElementById('accessStudentName').textContent = studentName;
+    document.getElementById('accessModal').classList.add('open');
+  }
+  function closeAccessModal(){
+    document.getElementById('accessModal').classList.remove('open');
+    pendingAccessStudentId = null;
+  }
+
+  async function confirmGrantAccess(){
+    if(!pendingAccessStudentId) return;
+    const days = parseInt(document.getElementById('accessDuration').value) || 30;
+    const expiry = new Date();
+    expiry.setDate(expiry.getDate() + days);
+
+    try{
+      await db.collection('users').doc(pendingAccessStudentId).update({
+        videoAccess: true,
+        videoAccessExpiry: firebase.firestore.Timestamp.fromDate(expiry)
+      });
+      const s = allStudents.find(x=> x.id === pendingAccessStudentId);
+      if(s){
+        s.videoAccess = true;
+        s.videoAccessExpiry = firebase.firestore.Timestamp.fromDate(expiry);
+      }
+      closeAccessModal();
+      renderStudents();
+    }catch(e){
+      alert('حدث خطأ أثناء تفعيل الصلاحية، حاول مرة أخرى.');
+      console.error(e);
+    }
+  }
+
+  async function revokeVideoAccess(studentId){
+    if(!confirm('هل تريد إلغاء صلاحية مشاهدة الفيديوهات لهذا الطالب؟')) return;
+    try{
+      await db.collection('users').doc(studentId).update({
+        videoAccess: false
+      });
+      const s = allStudents.find(x=> x.id === studentId);
+      if(s) s.videoAccess = false;
+      renderStudents();
+    }catch(e){
+      alert('حدث خطأ أثناء إلغاء الصلاحية، حاول مرة أخرى.');
+      console.error(e);
+    }
+  }
+
+  async function loadQuizzesAndResults(){
+    try{
+      const coursesSnap = await db.collection('courses').where('teacherId','==', currentProfile.teacherId).get();
+      const courseIds = [];
+      coursesSnap.forEach(doc=> courseIds.push(doc.id));
+
+      myQuizzes = [];
+      allResults = [];
+
+      if(courseIds.length === 0){
+        renderResults();
+        return;
+      }
+
+      const quizzesSnap = await db.collection('quizzes').where('courseId','in', courseIds.slice(0,30)).get();
+      quizzesSnap.forEach(doc=> myQuizzes.push({ id: doc.id, ...doc.data() }));
+
+      const quizFilterSelect = document.getElementById('quizFilterResults');
+      myQuizzes.forEach(q=>{
+        quizFilterSelect.innerHTML += `<option value="${q.id}">${escapeHtml(q.title)}</option>`;
+      });
+
+      if(myQuizzes.length === 0){
+        renderResults();
+        return;
+      }
+
+      const quizIds = myQuizzes.map(q=> q.id).slice(0,30);
+      const resultsSnap = await db.collection('results').where('quizId','in', quizIds).get();
+      resultsSnap.forEach(doc=> allResults.push({ id: doc.id, ...doc.data() }));
+
+      renderResults();
+    }catch(e){
+      document.getElementById('resultsBody').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--ink-soft); padding:30px 0;">حدث خطأ في التحميل</td></tr>`;
+      console.error(e);
+    }
+  }
+
+  function renderResults(){
+    const tbody = document.getElementById('resultsBody');
+    const filterQuizId = document.getElementById('quizFilterResults').value;
+
+    const filtered = filterQuizId ? allResults.filter(r=> r.quizId === filterQuizId) : allResults;
+
+    if(filtered.length === 0){
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--ink-soft); padding:30px 0;">لا توجد نتائج مسجلة بعد</td></tr>`;
+      return;
+    }
+
+    const sorted = [...filtered].sort((a,b)=>{
+      const ta = a.date && a.date.toDate ? a.date.toDate().getTime() : 0;
+      const tb = b.date && b.date.toDate ? b.date.toDate().getTime() : 0;
+      return tb - ta;
+    });
+
+    tbody.innerHTML = '';
+    sorted.forEach(r=>{
+      const student = allStudents.find(s=> s.id === r.uid);
+      const total = r.total || 0;
+      const pct = total > 0 ? Math.round((r.score/total)*100) : 0;
+      let cls = 'score-good';
+      if(pct < 50) cls = 'score-low';
+      else if(pct < 75) cls = 'score-mid';
+
+      const dateStr = r.date && r.date.toDate ? r.date.toDate().toLocaleDateString('ar-EG') : '-';
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${escapeHtml(student ? student.name : 'طالب محذوف')}</td>
+          <td>${escapeHtml(r.quizTitle || 'اختبار')}</td>
+          <td class="score-tag ${cls}">${r.score}/${total}</td>
+          <td class="score-tag ${cls}">${pct}%</td>
+          <td>${dateStr}</td>
+        </tr>`;
+    });
+  }
+
+  function updateStats(){
+    document.getElementById('statStudents').textContent = allStudents.length;
+    document.getElementById('statAttempts').textContent = allResults.length;
+
+    if(allResults.length > 0){
+      let totalPct = 0;
+      allResults.forEach(r=>{
+        const total = r.total || 0;
+        totalPct += total > 0 ? (r.score/total)*100 : 0;
+      });
+      document.getElementById('statAvg').textContent = Math.round(totalPct/allResults.length) + '%';
+    }
+  }
+</script>
+
+</body>
+</html>

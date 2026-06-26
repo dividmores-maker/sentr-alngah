@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم - سنتر النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  /* Welcome banner */
+  .welcome{
+    background: linear-gradient(135deg, var(--teal-deep), var(--teal));
+    border-radius: 22px;
+    padding: 32px 36px;
+    color:#fff;
+    position: relative;
+    overflow:hidden;
+    margin-bottom: 26px;
+  }
+  .welcome::after{
+    content:'';
+    position:absolute; left:-50px; top:-50px;
+    width:180px; height:180px; border-radius:50%;
+    background: rgba(232,163,61,.18);
+  }
+  .welcome h2{ font-size: 26px; font-weight:900; margin-bottom:6px; }
+  .welcome p{ opacity:.85; font-size:14.5px; position:relative; z-index:1; }
+
+  /* Stat cards */
+  .stat-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    display:flex; align-items:center; gap:16px;
+  }
+  .stat-card .ic{
+    width: 52px; height:52px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; color:#fff; flex-shrink:0;
+    transform: rotate(-4deg);
+  }
+  .stat-card.s1 .ic{ background: linear-gradient(135deg, var(--teal), var(--teal-deep)); }
+  .stat-card.s2 .ic{ background: linear-gradient(135deg, var(--gold), var(--gold-deep, #C77F1F)); }
+  .stat-card.s3 .ic{ background: linear-gradient(135deg, var(--coral), var(--coral-deep, #B8492F)); }
+  .stat-card.s4 .ic{ background: linear-gradient(135deg, #4a8f7c, var(--teal)); }
+  .stat-card b{ font-size: 24px; color: var(--teal-deep); display:block; font-family:'Cairo',sans-serif; }
+  .stat-card span{ font-size:12.5px; color: var(--ink-soft); }
+
+  .section-title{
+    font-size: 18px; font-weight:900; color: var(--teal-deep);
+    margin: 30px 0 16px;
+  }
+
+  /* Course progress card */
+  .progress-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    display:flex; align-items:center; gap:18px;
+  }
+  .progress-card .thumb{
+    width:54px; height:54px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; color:#fff; flex-shrink:0;
+  }
+  .progress-card .body{ flex:1; min-width:0; }
+  .progress-card h3{ font-size:15.5px; color: var(--teal-deep); font-weight:800; margin-bottom:8px; }
+  .progress-bar{
+    height:8px; border-radius:999px; background: var(--bg-soft); overflow:hidden;
+  }
+  .progress-bar > div{
+    height:100%; border-radius:999px;
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+  }
+  .progress-card .pct{ font-size:12px; color: var(--ink-soft); margin-top:6px; }
+
+  .quick-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-top: 10px; }
+  .quick-actions a{ flex:1; min-width:160px; }
+  .quick-actions .btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:16px 0; font-size:14.5px; }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark"><img src="splash.PNG" alt="سنتر النجاح" onerror="this.style.display='none';this.parentElement.innerHTML='<div style='width:100%;height:100%;background:linear-gradient(150deg,#1F6F5C,#0F3D33);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:19px;border-radius:13px'>س</div>';" style="width:100%;height:100%;object-fit:cover;border-radius:13px;"></div>
+      سنتر النجاح
+    </div>
+    <a class="nav-item active" href="dashboard.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="profile.html"><span class="ic">👤</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>الرئيسية</h1>
+          <div class="page-sub">نظرة عامة على تقدمك في سنتر النجاح</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">🎓</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userGrade">...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="welcome">
+        <h2 id="welcomeName">أهلاً بيك 👋</h2>
+        <p>تابع دروسك وحل اختباراتك خطوة بخطوة، وكل اللي تحتاجه موجود في القائمة الجانبية.</p>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="stat-card s1">
+          <div class="ic">📚</div>
+          <div><b id="statCourses">0</b><span>كورس متاح</span></div>
+        </div>
+        <div class="stat-card s2">
+          <div class="ic">🎥</div>
+          <div><b id="statLessons">0</b><span>درس متاح</span></div>
+        </div>
+        <div class="stat-card s3">
+          <div class="ic">📝</div>
+          <div><b id="statQuizzes">0</b><span>اختبار متاح</span></div>
+        </div>
+        <div class="stat-card s4">
+          <div class="ic">✅</div>
+          <div><b id="statDone">0</b><span>اختبار تم حله</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">إجراءات سريعة</div>
+      <div class="quick-actions">
+        <a href="courses.html"><button class="btn btn-solid">📚 استعرض الكورسات</button></a>
+        <a href="lessons.html"><button class="btn btn-gold">🎥 شاهد الدروس</button></a>
+        <a href="quizzes.html"><button class="btn btn-coral">📝 ابدأ اختبار</button></a>
+      </div>
+
+      <div class="section-title">آخر الكورسات</div>
+      <div id="coursesPreview" class="grid grid-3">
+        <div class="loading-state">جاري تحميل الكورسات...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  requireAuth(async (user, profile)=>{
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('userGrade').textContent = profile.grade || '';
+    document.getElementById('welcomeName').textContent = 'أهلاً بيك يا ' + (profile.name.split(' ')[0] || profile.name) + ' 👋';
+    document.getElementById('avatarChip').textContent = profile.avatar || '🎓';
+
+    loadStats(profile);
+    loadCoursesPreview(profile);
+  });
+
+  async function loadStats(profile){
+    try{
+      if(!profile.teacherId){
+        document.getElementById('statCourses').textContent = '0';
+        document.getElementById('statLessons').textContent = '0';
+        document.getElementById('statQuizzes').textContent = '0';
+        const resultsSnap = await db.collection('results').where('uid','==', firebase.auth().currentUser.uid).get();
+        document.getElementById('statDone').textContent = resultsSnap.size;
+        return;
+      }
+      const grades = profile.grade ? [profile.grade, 'جميع المراحل'] : ['جميع المراحل'];
+      const coursesSnap = await db.collection('courses')
+        .where('teacherId', '==', profile.teacherId)
+        .where('grade', 'in', grades)
+        .get();
+      const courseIds = [];
+      coursesSnap.forEach(doc=> courseIds.push(doc.id));
+
+      let lessonsCount = 0, quizzesCount = 0;
+      if(courseIds.length > 0){
+        const ids = courseIds.slice(0,30);
+        const lessonsSnap = await db.collection('lessons').where('courseId','in', ids).get();
+        const quizzesSnap = await db.collection('quizzes').where('courseId','in', ids).get();
+        lessonsCount = lessonsSnap.size;
+        quizzesCount = quizzesSnap.size;
+      }
+      const resultsSnap = await db.collection('results').where('uid','==', firebase.auth().currentUser.uid).get();
+
+      document.getElementById('statCourses').textContent = coursesSnap.size;
+      document.getElementById('statLessons').textContent = lessonsCount;
+      document.getElementById('statQuizzes').textContent = quizzesCount;
+      document.getElementById('statDone').textContent = resultsSnap.size;
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  const icons = ['📐','🧪','📖','🌍','🔬','📊','🧮','📜'];
+  const gradients = [
+    'linear-gradient(135deg, var(--teal), var(--teal-deep))',
+    'linear-gradient(135deg, var(--gold), var(--gold-deep, #C77F1F))',
+    'linear-gradient(135deg, var(--coral), var(--coral-deep, #B8492F))',
+    'linear-gradient(135deg, #4a8f7c, var(--teal))'
+  ];
+
+  async function loadCoursesPreview(profile){
+    const wrap = document.getElementById('coursesPreview');
+    try{
+      if(!profile.teacherId){
+        wrap.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="ic">👨‍🏫</div>
+            <h3>لم يتم تحديد المدرس لحسابك</h3>
+            <p>تواصل مع الإدارة لربط حسابك بالمدرس المناسب.</p>
+          </div>`;
+        return;
+      }
+      const grades = profile.grade ? [profile.grade, 'جميع المراحل'] : ['جميع المراحل'];
+      const snap = await db.collection('courses')
+        .where('teacherId', '==', profile.teacherId)
+        .where('grade','in', grades)
+        .limit(3).get();
+      if(snap.empty){
+        wrap.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="ic">📭</div>
+            <h3>لا توجد كورسات حالياً</h3>
+            <p>الإدارة بتجهز الكورسات، تابع معانا قريبًا.</p>
+          </div>`;
+        return;
+      }
+      wrap.innerHTML = '';
+      let i = 0;
+      snap.forEach(doc=>{
+        const c = doc.data();
+        const icon = icons[i % icons.length];
+        const grad = gradients[i % gradients.length];
+        wrap.innerHTML += `
+          <div class="progress-card">
+            <div class="thumb" style="background:${grad}">${c.icon || icon}</div>
+            <div class="body">
+              <h3>${c.title || 'كورس'}</h3>
+              <div class="progress-bar"><div style="width:0%"></div></div>
+              <div class="pct">${c.grade || ''}</div>
+            </div>
+          </div>`;
+        i++;
+      });
+    }catch(e){
+      wrap.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الكورسات الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+</script>
+
+</body>
+</html>

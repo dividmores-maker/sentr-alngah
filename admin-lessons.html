@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة الدروس - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  .page-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+
+  .lesson-card{
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 18px 20px; display:flex; align-items:center; gap:16px; margin-bottom:10px;
+  }
+  .lesson-card .num{
+    width:34px; height:34px; border-radius:10px; flex-shrink:0;
+    background: var(--bg-soft); color: var(--teal-deep);
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800;
+    font-family:'Cairo',sans-serif;
+  }
+  .lesson-card .body{ flex:1; min-width:0; }
+  .lesson-card h3{ font-size:14.5px; color: var(--teal-deep); font-weight:800; margin-bottom:4px; }
+  .lesson-card span{ font-size:12px; color: var(--ink-soft); }
+  .lesson-card .tags{ display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .lesson-actions{ display:flex; gap:8px; flex-shrink:0; }
+
+  .upload-zone{
+    border: 2px dashed var(--line);
+    border-radius: 14px;
+    padding: 26px;
+    text-align:center;
+    background: var(--bg-soft);
+    cursor:pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .upload-zone:hover{ border-color: var(--teal); }
+  .upload-zone.dragover{ border-color: var(--teal); background: rgba(31,111,92,.08); }
+  .upload-zone .ic{ font-size: 30px; margin-bottom:10px; }
+  .upload-zone b{ color: var(--teal-deep); display:block; margin-bottom:4px; font-family:'Cairo',sans-serif; font-size:14px; }
+  .upload-zone span{ font-size:12.5px; color: var(--ink-soft); }
+  .upload-zone input[type="file"]{ display:none; }
+
+  .file-chip{
+    display:flex; align-items:center; gap:10px;
+    background: var(--card); border:1px solid var(--line);
+    border-radius: 12px; padding: 10px 14px; margin-top:10px;
+    font-size:13px;
+  }
+  .file-chip .ic{ font-size:18px; }
+  .file-chip .name{ flex:1; color: var(--teal-deep); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-chip .remove{ cursor:pointer; color: var(--coral); font-weight:800; }
+
+  .progress-track{
+    height: 8px; border-radius:999px; background: var(--bg-soft); overflow:hidden; margin-top:10px; display:none;
+  }
+  .progress-track.show{ display:block; }
+  .progress-track > div{
+    height:100%; width:0%; border-radius:999px;
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+    transition: width .2s;
+  }
+  .progress-label{ font-size:12px; color: var(--ink-soft); margin-top:6px; display:none; }
+  .progress-label.show{ display:block; }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">ن</div>
+      لوحة المدرس
+    </div>
+    <a class="nav-item" href="admin.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="admin-courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item active" href="admin-lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="admin-quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="admin-students.html"><span class="ic">👥</span><span>طلابي والنتائج</span></a>
+    <a class="nav-item" href="admin-profile.html"><span class="ic">⚙️</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>الدروس</h1>
+          <div class="page-sub">إدارة دروس كورساتك</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">👨‍🏫</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userRole">مدرس</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div class="field" style="margin:0; min-width:220px;">
+          <select id="courseFilter" onchange="loadLessons()">
+            <option value="">اختر كورس لعرض دروسه</option>
+          </select>
+        </div>
+        <button class="btn btn-solid" onclick="openLessonModal()">➕ درس جديد</button>
+      </div>
+
+      <div id="lessonsList">
+        <div class="empty-state">
+          <div class="ic">📚</div>
+          <h3>اختر كورس من القائمة فوق</h3>
+          <p>هتظهر هنا كل الدروس المرتبطة بالكورس اللي تختاره.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lesson Modal -->
+<div class="modal-overlay" id="lessonModal" onclick="if(event.target===this) closeLessonModal()">
+  <div class="modal-box">
+    <button class="close" onclick="closeLessonModal()">✕</button>
+    <h2 id="lessonModalTitle">درس جديد</h2>
+    <form id="lessonForm">
+      <input type="hidden" id="lessonId">
+      <div class="field">
+        <label>الكورس</label>
+        <select id="lessonCourse" required>
+          <option value="" disabled selected>اختر الكورس</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>عنوان الدرس</label>
+        <input type="text" id="lessonTitle" placeholder="مثال: الدرس الأول - المقدمة" required>
+      </div>
+      <div class="field">
+        <label>ترتيب الدرس</label>
+        <input type="number" id="lessonOrder" placeholder="1" min="1" required>
+      </div>
+      <div class="field">
+        <label>وصف مختصر (اختياري)</label>
+        <textarea id="lessonDescription" rows="2" placeholder="نبذة عن محتوى الدرس..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>فيديو الدرس</label>
+        <div class="upload-zone" id="videoUploadZone" onclick="document.getElementById('videoFileInput').click()">
+          <div class="ic">🎥</div>
+          <b>اضغط هنا أو اسحب الفيديو</b>
+          <span>MP4 — حتى 2GB</span>
+          <input type="file" id="videoFileInput" accept="video/*">
+        </div>
+        <div id="videoFileChip"></div>
+        <div class="progress-track" id="videoProgressTrack"><div id="videoProgressBar"></div></div>
+        <div class="progress-label" id="videoProgressLabel"></div>
+      </div>
+
+      <div class="field">
+        <label>ملف PDF مرفق (اختياري)</label>
+        <div class="upload-zone" id="pdfUploadZone" onclick="document.getElementById('pdfFileInput').click()">
+          <div class="ic">📄</div>
+          <b>اضغط هنا أو اسحب ملف PDF</b>
+          <span>حتى 10MB</span>
+          <input type="file" id="pdfFileInput" accept="application/pdf">
+        </div>
+        <div id="pdfFileChip"></div>
+        <div class="progress-track" id="pdfProgressTrack"><div id="pdfProgressBar"></div></div>
+        <div class="progress-label" id="pdfProgressLabel"></div>
+      </div>
+
+      <button type="submit" class="btn btn-solid" id="lessonSubmitBtn" style="width:100%; margin-top:8px;">حفظ الدرس</button>
+      <div id="lessonFormMsg" class="form-msg"></div>
+    </form>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script src="cloudinary-upload.js"></script>
+<script>
+  let currentProfile = null;
+  let myCourses = [];
+  let selectedVideoFile = null;
+  let selectedPdfFile = null;
+
+  requireAuth(async (user, profile)=>{
+    currentProfile = profile;
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('avatarChip').textContent = profile.avatar || '👨‍🏫';
+    await loadMyCourses();
+
+    // لو جاي من صفحة الكورسات بـ ?course=ID، اختاره تلقائيًا
+    const params = new URLSearchParams(window.location.search);
+    const courseParam = params.get('course');
+    if(courseParam){
+      document.getElementById('courseFilter').value = courseParam;
+      loadLessons();
+    }
+  }, 'admin');
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  async function loadMyCourses(){
+    try{
+      const snap = await db.collection('courses').where('teacherId','==', currentProfile.teacherId).get();
+      myCourses = [];
+      snap.forEach(doc=> myCourses.push({ id: doc.id, ...doc.data() }));
+
+      const filterSelect = document.getElementById('courseFilter');
+      const lessonCourseSelect = document.getElementById('lessonCourse');
+      myCourses.forEach(c=>{
+        filterSelect.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)}</option>`;
+        lessonCourseSelect.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)}</option>`;
+      });
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  async function loadLessons(){
+    const list = document.getElementById('lessonsList');
+    const courseId = document.getElementById('courseFilter').value;
+
+    if(!courseId){
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="ic">📚</div>
+          <h3>اختر كورس من القائمة فوق</h3>
+          <p>هتظهر هنا كل الدروس المرتبطة بالكورس اللي تختاره.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = `<div class="loading-state">جاري تحميل الدروس...</div>`;
+
+    try{
+      const snap = await db.collection('lessons').where('courseId','==', courseId).get();
+      if(snap.empty){
+        list.innerHTML = `<div class="empty-state"><div class="ic">📭</div><h3>لسه مفيش دروس في هذا الكورس</h3><p>ابدأ بإضافة أول درس بالضغط على "درس جديد".</p></div>`;
+        return;
+      }
+
+      const lessons = [];
+      snap.forEach(doc=> lessons.push({ id: doc.id, ...doc.data() }));
+      lessons.sort((a,b)=> (a.order||0) - (b.order||0));
+
+      list.innerHTML = '';
+      lessons.forEach(l=>{
+        const tags = [];
+        if(l.videoUrl) tags.push('<span class="badge badge-teal">🎥 فيديو</span>');
+        else tags.push('<span class="badge badge-coral">بدون فيديو</span>');
+        if(l.pdfUrl) tags.push('<span class="badge badge-gold">📄 PDF</span>');
+
+        list.innerHTML += `
+          <div class="lesson-card">
+            <div class="num">${l.order || '-'}</div>
+            <div class="body">
+              <h3>${escapeHtml(l.title || 'درس')}</h3>
+              <span>${escapeHtml(l.description || 'بدون وصف')}</span>
+              <div class="tags">${tags.join('')}</div>
+            </div>
+            <div class="lesson-actions">
+              <button class="icon-btn" onclick='editLesson("${l.id}")'>✏️</button>
+              <button class="icon-btn danger" onclick='deleteLesson("${l.id}", "${escapeHtml(l.title||"")}")'>🗑️</button>
+            </div>
+          </div>`;
+      });
+    }catch(e){
+      list.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الدروس الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+
+  function resetUploadZones(){
+    selectedVideoFile = null;
+    selectedPdfFile = null;
+    document.getElementById('videoFileChip').innerHTML = '';
+    document.getElementById('pdfFileChip').innerHTML = '';
+    document.getElementById('videoFileInput').value = '';
+    document.getElementById('pdfFileInput').value = '';
+    document.getElementById('videoProgressTrack').classList.remove('show');
+    document.getElementById('pdfProgressTrack').classList.remove('show');
+    document.getElementById('videoProgressLabel').classList.remove('show');
+    document.getElementById('pdfProgressLabel').classList.remove('show');
+  }
+
+  function openLessonModal(){
+    document.getElementById('lessonModalTitle').textContent = 'درس جديد';
+    document.getElementById('lessonId').value = '';
+    document.getElementById('lessonTitle').value = '';
+    document.getElementById('lessonOrder').value = '';
+    document.getElementById('lessonDescription').value = '';
+    const courseId = document.getElementById('courseFilter').value;
+    document.getElementById('lessonCourse').value = courseId || '';
+    resetUploadZones();
+    hideFormMsg();
+    document.getElementById('lessonModal').classList.add('open');
+  }
+
+  function closeLessonModal(){
+    document.getElementById('lessonModal').classList.remove('open');
+  }
+
+  async function editLesson(id){
+    try{
+      const doc = await db.collection('lessons').doc(id).get();
+      if(!doc.exists) return;
+      const l = doc.data();
+
+      document.getElementById('lessonModalTitle').textContent = 'تعديل الدرس';
+      document.getElementById('lessonId').value = id;
+      document.getElementById('lessonTitle').value = l.title || '';
+      document.getElementById('lessonOrder').value = l.order || '';
+      document.getElementById('lessonDescription').value = l.description || '';
+      document.getElementById('lessonCourse').value = l.courseId || '';
+      resetUploadZones();
+
+      if(l.videoUrl){
+        document.getElementById('videoFileChip').innerHTML = `
+          <div class="file-chip"><span class="ic">🎥</span><span class="name">يوجد فيديو مرفوع بالفعل</span></div>`;
+      }
+      if(l.pdfUrl){
+        document.getElementById('pdfFileChip').innerHTML = `
+          <div class="file-chip"><span class="ic">📄</span><span class="name">يوجد ملف PDF مرفوع بالفعل</span></div>`;
+      }
+
+      hideFormMsg();
+      document.getElementById('lessonModal').classList.add('open');
+    }catch(e){
+      alert('تعذر تحميل بيانات الدرس.');
+      console.error(e);
+    }
+  }
+
+  async function deleteLesson(id, title){
+    if(!confirm(`هل أنت متأكد من حذف درس "${title}"؟`)) return;
+    try{
+      await db.collection('lessons').doc(id).delete();
+      loadLessons();
+    }catch(e){
+      alert('حدث خطأ أثناء الحذف، حاول مرة أخرى.');
+      console.error(e);
+    }
+  }
+
+  function showFormMsg(text, type){
+    const box = document.getElementById('lessonFormMsg');
+    box.textContent = text;
+    box.className = 'form-msg show ' + type;
+  }
+  function hideFormMsg(){
+    document.getElementById('lessonFormMsg').className = 'form-msg';
+  }
+
+  // ===== اختيار الملفات ورفعها فعليًا لـ Cloudinary =====
+  const MAX_VIDEO_MB = 100; // حد آمن للرفع المباشر بدون chunking
+  const MAX_PDF_MB = 10;
+
+  document.getElementById('videoFileInput').addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const sizeMB = file.size / (1024*1024);
+    if(sizeMB > MAX_VIDEO_MB){
+      alert(`حجم الفيديو كبير جدًا (${sizeMB.toFixed(1)}MB). الحد الأقصى المسموح حاليًا ${MAX_VIDEO_MB}MB. حاول تضغط الفيديو أو تقسمه لأجزاء أصغر.`);
+      e.target.value = '';
+      return;
+    }
+    selectedVideoFile = file;
+    document.getElementById('videoFileChip').innerHTML = `
+      <div class="file-chip">
+        <span class="ic">🎥</span>
+        <span class="name">${escapeHtml(file.name)} (${sizeMB.toFixed(1)}MB)</span>
+        <span class="remove" onclick="removeVideoFile()">✕</span>
+      </div>`;
+  });
+
+  document.getElementById('pdfFileInput').addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const sizeMB = file.size / (1024*1024);
+    if(sizeMB > MAX_PDF_MB){
+      alert(`حجم الملف كبير جدًا (${sizeMB.toFixed(1)}MB). الحد الأقصى المسموح ${MAX_PDF_MB}MB.`);
+      e.target.value = '';
+      return;
+    }
+    selectedPdfFile = file;
+    document.getElementById('pdfFileChip').innerHTML = `
+      <div class="file-chip">
+        <span class="ic">📄</span>
+        <span class="name">${escapeHtml(file.name)} (${sizeMB.toFixed(1)}MB)</span>
+        <span class="remove" onclick="removePdfFile()">✕</span>
+      </div>`;
+  });
+
+  function removeVideoFile(){
+    selectedVideoFile = null;
+    document.getElementById('videoFileInput').value = '';
+    document.getElementById('videoFileChip').innerHTML = '';
+  }
+  function removePdfFile(){
+    selectedPdfFile = null;
+    document.getElementById('pdfFileInput').value = '';
+    document.getElementById('pdfFileChip').innerHTML = '';
+  }
+
+  // دعم السحب والإفلات
+  function setupDropZone(zoneId, inputId){
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(inputId);
+    ['dragenter','dragover'].forEach(evt=>{
+      zone.addEventListener(evt, e=>{
+        e.preventDefault(); e.stopPropagation();
+        zone.classList.add('dragover');
+      });
+    });
+    ['dragleave','drop'].forEach(evt=>{
+      zone.addEventListener(evt, e=>{
+        e.preventDefault(); e.stopPropagation();
+        zone.classList.remove('dragover');
+      });
+    });
+    zone.addEventListener('drop', e=>{
+      const files = e.dataTransfer.files;
+      if(files && files.length > 0){
+        input.files = files;
+        input.dispatchEvent(new Event('change'));
+      }
+    });
+  }
+  setupDropZone('videoUploadZone', 'videoFileInput');
+  setupDropZone('pdfUploadZone', 'pdfFileInput');
+
+  function showProgress(type, percent, label){
+    const track = document.getElementById(type + 'ProgressTrack');
+    const bar = document.getElementById(type + 'ProgressBar');
+    const labelEl = document.getElementById(type + 'ProgressLabel');
+    track.classList.add('show');
+    labelEl.classList.add('show');
+    bar.style.width = percent + '%';
+    labelEl.textContent = label || (`جاري الرفع... ${percent}%`);
+  }
+  function hideProgress(type){
+    document.getElementById(type + 'ProgressTrack').classList.remove('show');
+    document.getElementById(type + 'ProgressLabel').classList.remove('show');
+  }
+
+  document.getElementById('lessonForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    hideFormMsg();
+
+    const id = document.getElementById('lessonId').value;
+    const courseId = document.getElementById('lessonCourse').value;
+    const title = document.getElementById('lessonTitle').value.trim();
+    const order = parseInt(document.getElementById('lessonOrder').value) || 0;
+    const description = document.getElementById('lessonDescription').value.trim();
+    const btn = document.getElementById('lessonSubmitBtn');
+
+    if(!courseId || !title || !order){
+      showFormMsg('من فضلك اكمل الحقول المطلوبة.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+
+    try{
+      const data = {
+        courseId, title, order, description,
+        teacherId: currentProfile.teacherId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      // رفع الفيديو فعليًا لـ Cloudinary لو تم اختيار ملف جديد
+      if(selectedVideoFile){
+        btn.textContent = 'جاري رفع الفيديو...';
+        try{
+          const videoUrl = await uploadToCloudinary(selectedVideoFile, 'video', (pct)=>{
+            showProgress('video', pct);
+          });
+          data.videoUrl = videoUrl;
+          hideProgress('video');
+        }catch(uploadErr){
+          hideProgress('video');
+          showFormMsg('فشل رفع الفيديو: ' + uploadErr.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'حفظ الدرس';
+          return;
+        }
+      }
+
+      // رفع ملف الـ PDF فعليًا لـ Cloudinary لو تم اختيار ملف جديد
+      if(selectedPdfFile){
+        btn.textContent = 'جاري رفع الملف...';
+        try{
+          const pdfUrl = await uploadToCloudinary(selectedPdfFile, 'raw', (pct)=>{
+            showProgress('pdf', pct);
+          });
+          data.pdfUrl = pdfUrl;
+          hideProgress('pdf');
+        }catch(uploadErr){
+          hideProgress('pdf');
+          showFormMsg('فشل رفع ملف PDF: ' + uploadErr.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'حفظ الدرس';
+          return;
+        }
+      }
+
+      btn.textContent = 'جاري حفظ البيانات...';
+
+      if(id){
+        await db.collection('lessons').doc(id).update(data);
+      } else {
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('lessons').add(data);
+      }
+
+      closeLessonModal();
+      loadLessons();
+    }catch(e){
+      showFormMsg('حدث خطأ أثناء الحفظ، حاول مرة أخرى.', 'error');
+      console.error(e);
+    } finally{
+      btn.disabled = false;
+      btn.textContent = 'حفظ الدرس';
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة المدرس - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+  .welcome{
+    background: linear-gradient(135deg, var(--teal-deep), var(--teal));
+    border-radius: 22px;
+    padding: 32px 36px;
+    color:#fff;
+    position: relative;
+    overflow:hidden;
+    margin-bottom: 26px;
+  }
+  .welcome::after{
+    content:'';
+    position:absolute; left:-50px; top:-50px;
+    width:180px; height:180px; border-radius:50%;
+    background: rgba(232,163,61,.18);
+  }
+  .welcome h2{ font-size: 26px; font-weight:900; margin-bottom:6px; }
+  .welcome p{ opacity:.85; font-size:14.5px; position:relative; z-index:1; }
+
+  .section-title{
+    font-size: 18px; font-weight:900; color: var(--teal-deep);
+    margin: 30px 0 16px;
+  }
+
+  .quick-actions{ display:flex; gap:14px; flex-wrap:wrap; }
+  .quick-actions a{ flex:1; min-width:180px; }
+  .quick-actions .btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:16px 0; font-size:14.5px; }
+
+  .recent-card{
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 20px; display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 10px;
+  }
+  .recent-card .left{ display:flex; align-items:center; gap:14px; }
+  .recent-card .ic{
+    width:42px; height:42px; border-radius:12px;
+    background: var(--bg-soft); color: var(--teal-deep);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .recent-card h4{ font-size:14px; color: var(--teal-deep); font-weight:800; margin-bottom:3px; }
+  .recent-card span{ font-size:12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark">ن</div>
+      لوحة المدرس
+    </div>
+    <a class="nav-item active" href="admin.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="admin-courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="admin-lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="admin-quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="admin-students.html"><span class="ic">👥</span><span>طلابي والنتائج</span></a>
+    <a class="nav-item" href="admin-profile.html"><span class="ic">⚙️</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>الرئيسية</h1>
+          <div class="page-sub">نظرة عامة على كورساتك وطلابك</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">👨‍🏫</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userRole">مدرس</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div id="passwordWarning" style="display:none; background: rgba(224,98,62,.1); border:1px solid rgba(224,98,62,.3); color:var(--coral-deep, #B8492F); border-radius:14px; padding:14px 18px; margin-bottom:20px; font-size:13.5px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <span>⚠️ حسابك بكلمة مرور افتراضية، يُفضّل تغييرها فورًا للحفاظ على أمان حسابك.</span>
+        <a href="admin-profile.html"><button class="btn btn-coral btn-sm">تغيير كلمة المرور</button></a>
+      </div>
+
+      <div class="welcome">
+        <h2 id="welcomeName">أهلاً بيك 👋</h2>
+        <p>من هنا تقدر تدير كورساتك ودروسك واختباراتك، وتتابع نتائج طلابك.</p>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="stat-card s1">
+          <div class="ic">📚</div>
+          <div><b id="statCourses">0</b><span>كورس</span></div>
+        </div>
+        <div class="stat-card s2">
+          <div class="ic">🎥</div>
+          <div><b id="statLessons">0</b><span>درس</span></div>
+        </div>
+        <div class="stat-card s3">
+          <div class="ic">📝</div>
+          <div><b id="statQuizzes">0</b><span>اختبار</span></div>
+        </div>
+        <div class="stat-card s4">
+          <div class="ic">👥</div>
+          <div><b id="statStudents">0</b><span>طالب مسجل</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">إجراءات سريعة</div>
+      <div class="quick-actions">
+        <a href="admin-courses.html"><button class="btn btn-solid">➕ كورس جديد</button></a>
+        <a href="admin-lessons.html"><button class="btn btn-gold">🎥 درس جديد</button></a>
+        <a href="admin-quizzes.html"><button class="btn btn-coral">📝 اختبار جديد</button></a>
+      </div>
+
+      <div class="section-title">آخر كورساتك</div>
+      <div id="recentCourses">
+        <div class="loading-state">جاري التحميل...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+  requireAuth(async (user, profile)=>{
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('welcomeName').textContent = 'أهلاً بيك يا ' + (profile.name.split(' ')[0] || profile.name) + ' 👋';
+    document.getElementById('avatarChip').textContent = profile.avatar || '👨‍🏫';
+
+    if(profile.mustChangePassword){
+      document.getElementById('passwordWarning').style.display = 'flex';
+    }
+
+    loadStats(profile);
+    loadRecentCourses(profile);
+  }, 'admin');
+
+  async function loadStats(profile){
+    try{
+      const coursesSnap = await db.collection('courses').where('teacherId','==', profile.teacherId).get();
+      const courseIds = [];
+      coursesSnap.forEach(doc=> courseIds.push(doc.id));
+
+      let lessonsCount = 0, quizzesCount = 0;
+      if(courseIds.length > 0){
+        const ids = courseIds.slice(0,30);
+        const lessonsSnap = await db.collection('lessons').where('courseId','in', ids).get();
+        const quizzesSnap = await db.collection('quizzes').where('courseId','in', ids).get();
+        lessonsCount = lessonsSnap.size;
+        quizzesCount = quizzesSnap.size;
+      }
+
+      const studentsSnap = await db.collection('users')
+        .where('teacherId','==', profile.teacherId)
+        .where('role','==','student')
+        .get();
+
+      document.getElementById('statCourses').textContent = coursesSnap.size;
+      document.getElementById('statLessons').textContent = lessonsCount;
+      document.getElementById('statQuizzes').textContent = quizzesCount;
+      document.getElementById('statStudents').textContent = studentsSnap.size;
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  async function loadRecentCourses(profile){
+    const wrap = document.getElementById('recentCourses');
+    try{
+      const snap = await db.collection('courses').where('teacherId','==', profile.teacherId).limit(5).get();
+      if(snap.empty){
+        wrap.innerHTML = `
+          <div class="empty-state">
+            <div class="ic">📭</div>
+            <h3>لسه مفيش كورسات</h3>
+            <p>ابدأ بإضافة أول كورس من صفحة الكورسات.</p>
+          </div>`;
+        return;
+      }
+      wrap.innerHTML = '';
+      snap.forEach(doc=>{
+        const c = doc.data();
+        wrap.innerHTML += `
+          <div class="recent-card">
+            <div class="left">
+              <div class="ic">${c.icon || '📘'}</div>
+              <div>
+                <h4>${c.title || 'كورس'}</h4>
+                <span>${c.grade || 'جميع المراحل'}</span>
+              </div>
+            </div>
+            <a href="admin-lessons.html?course=${doc.id}"><button class="btn btn-ghost btn-sm">عرض الدروس</button></a>
+          </div>`;
+      });
+    }catch(e){
+      wrap.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل الكورسات الآن.</p></div>`;
+      console.error(e);
+    }
+  }
+</script>
+
+</body>
+</html>
