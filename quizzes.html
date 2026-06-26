@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>الاختبارات - مركز النجاح</title>
+<title> سنتر النجاح</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
@@ -61,6 +61,26 @@
   .result-box .score-circle span{ font-size:12px; opacity:.85; }
   .result-box h2{ font-size:20px; color: var(--teal-deep); margin-bottom:8px; }
   .result-box p{ font-size:14px; color: var(--ink-soft); margin-bottom: 22px; }
+
+  /* Sidebar overlay */
+  .sidebar-overlay{
+    display:none; position:fixed; inset:0; z-index:55;
+    background: rgba(0,0,0,.45); backdrop-filter: blur(3px);
+  }
+  .sidebar-overlay.open{ display:block; }
+
+  @media (max-width: 560px){
+    /* Quiz cards: عمود واحد */
+    .grid-2{ grid-template-columns: 1fr !important; }
+
+    /* Quiz card layout على موبيل */
+    .quiz-card{ gap:12px; padding:16px; }
+    .quiz-card .thumb{ width:44px; height:44px; font-size:18px; }
+
+    /* Quiz runner padding أقل */
+    .quiz-runner{ padding:18px 14px; }
+    .option{ padding:11px 12px; font-size:13.5px; }
+  }
 </style>
 </head>
 <body>
@@ -71,11 +91,13 @@
   <div class="blob ab3"></div>
 </div>
 
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="mark">ن</div>
-      مركز النجاح
+      سنتر النجاح
     </div>
     <a class="nav-item" href="dashboard.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
     <a class="nav-item" href="courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
@@ -90,7 +112,7 @@
   <div class="main">
     <div class="topbar">
       <div style="display:flex; align-items:center; gap:14px;">
-        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <button class="menu-toggle" onclick="openSidebar()">☰</button>
         <div>
           <h1>الاختبارات</h1>
           <div class="page-sub">اختبر نفسك واعرف نتيجتك فورًا</div>
@@ -327,6 +349,12 @@
         </div>
       </div>`;
   }
+</script>
+
+<script>
+  function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+  function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSidebar(); });
 </script>
 
 </body>

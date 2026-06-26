@@ -82,6 +82,32 @@
   .quick-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-top: 10px; }
   .quick-actions a{ flex:1; min-width:160px; }
   .quick-actions .btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:16px 0; font-size:14.5px; }
+
+  /* Sidebar overlay for mobile */
+  .sidebar-overlay{
+    display:none;
+    position:fixed; inset:0; z-index:55;
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(3px);
+  }
+  .sidebar-overlay.open{ display:block; }
+
+  @media (max-width: 560px){
+    /* Stat cards: 2x2 grid */
+    .grid-4{ grid-template-columns: repeat(2,1fr) !important; }
+
+    /* Quick actions: كل زرار في سطر لوحده */
+    .quick-actions{ flex-direction:column; }
+    .quick-actions a{ min-width: unset; width:100%; }
+
+    /* Welcome banner */
+    .welcome{ padding: 24px 20px; }
+    .welcome h2{ font-size:21px; }
+
+    /* Stat card padding أصغر شوية */
+    .stat-card{ padding:16px 14px; gap:12px; }
+    .stat-card b{ font-size:20px; }
+  }
 </style>
 </head>
 <body>
@@ -91,6 +117,8 @@
   <div class="blob ab2"></div>
   <div class="blob ab3"></div>
 </div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <div class="app">
   <!-- Sidebar -->
@@ -113,7 +141,7 @@
   <div class="main">
     <div class="topbar">
       <div style="display:flex; align-items:center; gap:14px;">
-        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <button class="menu-toggle" onclick="openSidebar()">☰</button>
         <div>
           <h1>الرئيسية</h1>
           <div class="page-sub">نظرة عامة على تقدمك في سنتر النجاح</div>
@@ -277,6 +305,19 @@
       console.error(e);
     }
   }
+</script>
+
+<script>
+  function openSidebar(){
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('open');
+  }
+  function closeSidebar(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+  // إغلاق الـ sidebar لما تضغط Escape
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeSidebar(); });
 </script>
 
 </body>
