@@ -86,8 +86,9 @@
   /* Sidebar overlay for mobile */
   .sidebar-overlay{
     display:none;
-    position:fixed; inset:0; z-index:55;
+    position:fixed; inset:0; z-index:50;
     background: rgba(0,0,0,.45);
+    backdrop-filter: blur(3px);
   }
   .sidebar-overlay.open{ display:block; }
 
@@ -183,9 +184,9 @@
 
       <div class="section-title">إجراءات سريعة</div>
       <div class="quick-actions">
-        <a href="courses.html" class="btn btn-solid">📚 استعرض الكورسات</a>
-        <a href="lessons.html" class="btn btn-gold">🎥 شاهد الدروس</a>
-        <a href="quizzes.html" class="btn btn-coral">📝 ابدأ اختبار</a>
+        <a href="courses.html"><button class="btn btn-solid">📚 استعرض الكورسات</button></a>
+        <a href="lessons.html"><button class="btn btn-gold">🎥 شاهد الدروس</button></a>
+        <a href="quizzes.html"><button class="btn btn-coral">📝 ابدأ اختبار</button></a>
       </div>
 
       <div class="section-title">آخر الكورسات</div>
