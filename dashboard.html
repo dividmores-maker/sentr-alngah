@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة التحكم - سنتر النجاح</title>
+<title>لوحة التحكم - مركز النجاح</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
@@ -82,31 +82,6 @@
   .quick-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-top: 10px; }
   .quick-actions a{ flex:1; min-width:160px; }
   .quick-actions .btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:16px 0; font-size:14.5px; }
-
-  /* Sidebar overlay for mobile */
-  .sidebar-overlay{
-    display:none;
-    position:fixed; inset:0; z-index:50;
-    background: rgba(0,0,0,.45);
-  }
-  .sidebar-overlay.open{ display:block; }
-
-  @media (max-width: 560px){
-    /* Stat cards: 2x2 grid */
-    .grid-4{ grid-template-columns: repeat(2,1fr) !important; }
-
-    /* Quick actions: كل زرار في سطر لوحده */
-    .quick-actions{ flex-direction:column; }
-    .quick-actions a{ min-width: unset; width:100%; }
-
-    /* Welcome banner */
-    .welcome{ padding: 24px 20px; }
-    .welcome h2{ font-size:21px; }
-
-    /* Stat card padding أصغر شوية */
-    .stat-card{ padding:16px 14px; gap:12px; }
-    .stat-card b{ font-size:20px; }
-  }
 </style>
 </head>
 <body>
@@ -117,14 +92,12 @@
   <div class="blob ab3"></div>
 </div>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
-
 <div class="app">
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="mark"><img src="splash.PNG" alt="سنتر النجاح" onerror="this.style.display='none';this.parentElement.innerHTML='<div style='width:100%;height:100%;background:linear-gradient(150deg,#1F6F5C,#0F3D33);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:19px;border-radius:13px'>س</div>';" style="width:100%;height:100%;object-fit:cover;border-radius:13px;"></div>
-      سنتر النجاح
+      <div class="mark">ن</div>
+      مركز النجاح
     </div>
     <a class="nav-item active" href="dashboard.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
     <a class="nav-item" href="courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
@@ -140,10 +113,10 @@
   <div class="main">
     <div class="topbar">
       <div style="display:flex; align-items:center; gap:14px;">
-        <button class="menu-toggle" onclick="openSidebar()">☰</button>
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
         <div>
           <h1>الرئيسية</h1>
-          <div class="page-sub">نظرة عامة على تقدمك في سنتر النجاح</div>
+          <div class="page-sub">نظرة عامة على تقدمك في مركز النجاح</div>
         </div>
       </div>
       <div class="user-chip">
@@ -304,21 +277,6 @@
       console.error(e);
     }
   }
-</script>
-
-<script>
-  function openSidebar(){
-    document.getElementById('sidebar').classList.add('open');
-    document.getElementById('sidebarOverlay').classList.add('open');
-    document.body.style.overflow='hidden';
-  }
-  function closeSidebar(){
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarOverlay').classList.remove('open');
-    document.body.style.overflow='';
-  }
-  // إغلاق الـ sidebar لما تضغط Escape
-  document.addEventListener('keydown', e => { if(e.key==='Escape') closeSidebar(); });
 </script>
 
 </body>

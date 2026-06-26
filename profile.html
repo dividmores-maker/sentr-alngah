@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>الملف الشخصي - سنتر النجاح</title>
+<title>الملف الشخصي - مركز النجاح</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
@@ -60,29 +60,6 @@
   .score-good{ color: var(--teal-deep); }
   .score-mid{ color: var(--gold); }
   .score-low{ color: var(--coral); }
-
-  /* Sidebar overlay */
-  .sidebar-overlay{
-    display:none; position:fixed; inset:0; z-index:50;
-    background: rgba(0,0,0,.45);
-  }
-  .sidebar-overlay.open{ display:block; }
-
-  @media (max-width: 700px){
-    /* Profile header */
-    .profile-header{ flex-direction:column; align-items:flex-start; padding:24px 20px; gap:14px; }
-    .profile-header h2{ font-size:20px; }
-
-    /* Info + performance cards: عمود واحد */
-    .grid-2{ grid-template-columns: 1fr !important; }
-
-    /* Results table: خلي عمود التاريخ يتخفى على الشاشات الصغيرة */
-    .results-table th:last-child,
-    .results-table td:last-child{ display:none; }
-
-    /* Email form */
-    #saveEmailBtn{ width:100%; }
-  }
 </style>
 </head>
 <body>
@@ -93,13 +70,11 @@
   <div class="blob ab3"></div>
 </div>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
-
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="mark">ن</div>
-      سنتر النجاح
+      مركز النجاح
     </div>
     <a class="nav-item" href="dashboard.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
     <a class="nav-item" href="courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
@@ -114,7 +89,7 @@
   <div class="main">
     <div class="topbar">
       <div style="display:flex; align-items:center; gap:14px;">
-        <button class="menu-toggle" onclick="openSidebar()">☰</button>
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
         <div>
           <h1>الملف الشخصي</h1>
           <div class="page-sub">بياناتك ونتائجك في الاختبارات</div>
@@ -342,12 +317,6 @@
       btn.textContent = 'حفظ وربط الإيميل';
     }
   }
-</script>
-
-<script>
-  function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); document.body.style.overflow='hidden'; }
-  function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); document.body.style.overflow=''; }
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSidebar(); });
 </script>
 
 </body>
