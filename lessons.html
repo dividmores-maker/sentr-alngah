@@ -330,25 +330,13 @@
   }
 </script>
 
+
+
 <script>
   function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
   function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSidebar(); });
-
-  function toggleLessonList(){
-    const card = document.getElementById('lessonListCard');
-    const btn = document.getElementById('listToggle');
-    card.classList.toggle('open');
-    btn.classList.toggle('open');
-  }
-
-  // على الموبيل: لما الطالب يختار درس، قفل القائمة تلقائياً
-  function closeLessonListOnMobile(){
-    if(window.innerWidth <= 1100){
-      document.getElementById('lessonListCard').classList.remove('open');
-      document.getElementById('listToggle').classList.remove('open');
-    }
-  }
+  window.addEventListener('pageshow', function(){ closeSidebar(); });
 </script>
 
 </body>

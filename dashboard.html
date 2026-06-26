@@ -307,6 +307,8 @@
   }
 </script>
 
+
+
 <script>
   function openSidebar(){
     document.getElementById('sidebar').classList.add('open');
@@ -318,6 +320,8 @@
   }
   // إغلاق الـ sidebar لما تضغط Escape
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeSidebar(); });
+  // قفل الـ overlay تلقائياً لما الصفحة تتحمل (حتى من الـ bfcache)
+  window.addEventListener('pageshow', function(){ closeSidebar(); });
 </script>
 
 </body>
