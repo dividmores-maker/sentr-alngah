@@ -88,7 +88,6 @@
     display:none;
     position:fixed; inset:0; z-index:50;
     background: rgba(0,0,0,.45);
-    backdrop-filter: blur(3px);
   }
   .sidebar-overlay.open{ display:block; }
 
@@ -311,10 +310,12 @@
   function openSidebar(){
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('sidebarOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
   }
   function closeSidebar(){
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
+    document.body.style.overflow='';
   }
   // إغلاق الـ sidebar لما تضغط Escape
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeSidebar(); });

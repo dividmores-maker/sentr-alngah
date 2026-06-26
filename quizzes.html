@@ -65,7 +65,7 @@
   /* Sidebar overlay */
   .sidebar-overlay{
     display:none; position:fixed; inset:0; z-index:50;
-    background: rgba(0,0,0,.45); backdrop-filter: blur(3px);
+    background: rgba(0,0,0,.45);
   }
   .sidebar-overlay.open{ display:block; }
 
@@ -352,8 +352,8 @@
 </script>
 
 <script>
-  function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
-  function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+  function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); document.body.style.overflow='hidden'; }
+  function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); document.body.style.overflow=''; }
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSidebar(); });
 </script>
 
