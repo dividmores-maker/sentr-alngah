@@ -187,13 +187,21 @@ a{ text-decoration:none; }
 
 @media (max-width: 900px){
   .sidebar{
-    position: fixed; inset: 0 auto 0 0;
+    position: fixed;
+    inset: 0 0 0 auto;
     z-index: 60;
-    transform: translateX(-105%);
+    width: 270px;
+    transform: translateX(105%);
     transition: transform .3s ease;
-    box-shadow: 20px 0 40px rgba(0,0,0,.2);
+    box-shadow: -20px 0 40px rgba(0,0,0,.3);
+    color: #ffffff !important;
   }
   .sidebar.open{ transform: translateX(0); }
+  .sidebar .nav-item{ color: rgba(255,255,255,.85) !important; }
+  .sidebar .nav-item.active,
+  .sidebar .nav-item:hover{ color: #ffffff !important; background: rgba(255,255,255,.15); }
+  .sidebar .brand{ color: #ffffff !important; }
+  .sidebar .logout-btn{ color: #ffb3a0 !important; }
   .menu-toggle{ display:block; }
   .topbar{ padding: 16px 18px; }
   .content{ padding: 20px 16px 50px; }
