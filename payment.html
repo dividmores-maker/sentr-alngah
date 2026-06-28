@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>طرق الدفع والاشتراك - مركز النجاح</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<script src="teachers.js"></script>
+<!-- ✅ payment-data.js شيلته - البيانات بتيجي من Firestore دلوقتي -->
+<style>
+
+  .pay-hero {
+    background: linear-gradient(135deg, var(--teal-deep), var(--teal));
+    border-radius: 22px;
+    padding: 32px 36px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .pay-hero::before {
+    content: '💳';
+    position: absolute;
+    left: 30px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 80px;
+    opacity: .12;
+  }
+  .pay-hero h2 { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
+  .pay-hero p  { opacity: .85; font-size: 14px; }
+
+  .teacher-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .teacher-avatar {
+    width: 64px; height: 64px; border-radius: 18px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+  .teacher-card h3 { font-size: 18px; font-weight: 900; color: var(--teal-deep); margin-bottom: 4px; }
+  .teacher-card span { font-size: 13px; color: var(--ink-soft); }
+
+  .section-title {
+    font-size: 16px; font-weight: 900; color: var(--teal-deep);
+    margin: 24px 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .contact-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform .18s, box-shadow .18s;
+  }
+  .contact-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+  .contact-card .cc-icon {
+    width: 46px; height: 46px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .contact-card .cc-label { font-size: 12px; color: var(--ink-soft); }
+  .contact-card .cc-value { font-size: 15px; font-weight: 700; color: var(--teal-deep); font-family:'Cairo',sans-serif; direction: ltr; text-align: right; }
+  .contact-card .cc-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+  .cc-btn {
+    flex: 1; padding: 9px 0; border-radius: 10px; border: none; cursor: pointer;
+    font-family: 'Cairo', sans-serif; font-size: 12.5px; font-weight: 700;
+    transition: opacity .15s; color: #fff;
+  }
+  .cc-btn:hover { opacity: .85; }
+  .cc-btn.outline { background: transparent !important; border: 1.5px solid var(--line); color: var(--teal-deep) !important; }
+
+  .cc-whatsapp  .cc-icon { background: linear-gradient(135deg,#25d366,#128c7e); }
+  .cc-whatsapp  .cc-btn.primary { background: #25d366; }
+
+  .cc-instapay  .cc-icon { background: linear-gradient(135deg,#7b2ff7,#4a00e0); }
+  .cc-instapay  .cc-btn.primary { background: linear-gradient(135deg,#7b2ff7,#4a00e0); }
+
+  .cc-vodafone  .cc-icon { background: linear-gradient(135deg,#e60000,#a00); }
+  .cc-vodafone  .cc-btn.primary { background: #e60000; }
+
+  .cc-etisalat  .cc-icon { background: linear-gradient(135deg,#ff6000,#c84b00); }
+  .cc-etisalat  .cc-btn.primary { background: #ff6000; }
+
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .plan-card {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 18px;
+    text-align: center;
+    transition: border-color .18s, transform .18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card.featured { border-color: var(--gold); }
+  .plan-card.featured::before {
+    content: '⭐ الأوفر';
+    position: absolute; top: 0; left: 0; right: 0;
+    background: var(--gold); color: #fff;
+    font-size: 11px; font-weight: 700; padding: 4px 0;
+    font-family: 'Cairo', sans-serif;
+  }
+  .plan-card.featured .plan-price { margin-top: 18px; }
+  .plan-card:hover { transform: translateY(-3px); }
+  .plan-label { font-size: 14px; font-weight: 700; color: var(--ink-soft); margin-bottom: 8px; }
+  .plan-price { font-size: 28px; font-weight: 900; color: var(--teal-deep); font-family:'Cairo',sans-serif; }
+  .plan-note  { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+
+  .note-box {
+    background: rgba(232,163,61,.08);
+    border: 1px solid var(--gold);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex; gap: 12px; align-items: flex-start;
+    margin-top: 24px;
+  }
+  .note-box .nb-icon { font-size: 22px; flex-shrink: 0; }
+  .note-box p { font-size: 13.5px; color: var(--teal-deep); line-height: 1.7; }
+
+  .no-data {
+    text-align: center; padding: 60px 20px; color: var(--ink-soft);
+  }
+  .no-data .nd-icon { font-size: 54px; margin-bottom: 16px; }
+  .no-data h3 { font-size: 18px; font-weight: 900; color: var(--teal-deep); margin-bottom: 8px; }
+
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--teal-deep); color: #fff;
+    padding: 12px 24px; border-radius: 40px;
+    font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700;
+    box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    z-index: 9999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="toast" id="toast">✅ تم النسخ!</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="mark">ن</div>مركز النجاح</div>
+    <a class="nav-item" href="dashboard.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="profile.html"><span class="ic">👤</span><span>الملف الشخصي</span></a>
+    <a class="nav-item active" href="payment.html"><span class="ic">💳</span><span>طرق الدفع</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>طرق الدفع والاشتراك</h1>
+          <div class="page-sub">تواصل مع مدرسك وجدد اشتراكك بسهولة</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">🎓</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span id="userGrade">...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="pageContent">
+      <div class="no-data"><div class="nd-icon">⏳</div><h3>جاري التحميل...</h3></div>
+    </div>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script>
+
+  requireAuth(async (user, profile) => {
+    document.getElementById('userName').textContent   = profile.name;
+    document.getElementById('userGrade').textContent  = profile.grade || '';
+    document.getElementById('avatarChip').textContent = profile.avatar || '🎓';
+    await renderPage(profile);
+  });
+
+  async function renderPage(profile) {
+    const wrap = document.getElementById('pageContent');
+    const tid  = profile.teacherId;
+
+    if (!tid) {
+      wrap.innerHTML = noDataHTML('👨‍🏫', 'لم يتم تحديد مدرس لحسابك', 'تواصل مع الإدارة لربط حسابك بالمدرس المناسب.');
+      return;
+    }
+
+    // ✅ جلب بيانات الدفع من Firestore
+    let data = null;
+    try {
+      const snap = await db.collection('teacherPayment').doc(tid).get();
+      if (snap.exists) data = snap.data();
+    } catch(e) {
+      console.error(e);
+    }
+
+    if (!data) {
+      wrap.innerHTML = noDataHTML('💳', 'بيانات الدفع غير متاحة', 'لم تُضف بيانات الدفع لمدرسك بعد، تواصل مع الإدارة.');
+      return;
+    }
+
+    // جلب اسم المدرس من teachers.js (لو موجود) أو من Firestore
+    let teacherName    = data.teacherName || 'المدرس';
+    let teacherSubject = '';
+    if (typeof TEACHERS !== 'undefined') {
+      const teacher = TEACHERS.find(t => t.id === tid);
+      if (teacher) {
+        teacherName    = teacher.name;
+        teacherSubject = teacher.subject || '';
+      }
+    }
+
+    const noteBlock = data.note
+      ? `<div class="note-box"><div class="nb-icon">⚠️</div><p>${data.note}</p></div>`
+      : '';
+
+    const plansBlock = data.plans?.length
+      ? `<div class="section-title">💰 خطط الاشتراك</div><div class="plans-grid">${buildPlans(data.plans)}</div>`
+      : '';
+
+    wrap.innerHTML = `
+      <div class="pay-hero">
+        <h2>💳 طرق الدفع والاشتراك</h2>
+        <p>تواصل مع مدرسك عبر أي من الطرق دي وهو هيفعلّك في أقرب وقت.</p>
+      </div>
+
+      <div class="teacher-card">
+        <div class="teacher-avatar">👨‍🏫</div>
+        <div>
+          <h3>${teacherName}</h3>
+          <span>${teacherSubject}</span>
+        </div>
+      </div>
+
+      <div class="section-title">📞 وسائل التواصل والدفع</div>
+      <div class="contact-grid">${buildContacts(data)}</div>
+
+      ${plansBlock}
+      ${noteBlock}
+    `;
+  }
+
+  function buildContacts(data) {
+    let html = '';
+
+    if (data.whatsapp) {
+      html += `
+        <div class="contact-card cc-whatsapp">
+          <div class="cc-icon">💬</div>
+          <div class="cc-label">واتساب</div>
+          <div class="cc-value">+${data.whatsapp}</div>
+          <div class="cc-actions">
+            <button class="cc-btn primary" onclick="openWhatsApp('${data.whatsapp}')">فتح واتساب</button>
+            <button class="cc-btn outline" onclick="copyText('${data.whatsapp}')">نسخ</button>
+          </div>
+        </div>`;
+    }
+
+    if (data.instapay) {
+      html += `
+        <div class="contact-card cc-instapay">
+          <div class="cc-icon">💸</div>
+          <div class="cc-label">إنستاباي</div>
+          <div class="cc-value">${data.instapay}</div>
+          <div class="cc-actions">
+            <button class="cc-btn primary" onclick="openInstapay('${data.instapay}')">فتح إنستاباي</button>
+            <button class="cc-btn outline" onclick="copyText('${data.instapay}')">نسخ</button>
+          </div>
+        </div>`;
+    }
+
+    if (data.vodafoneCash) {
+      html += `
+        <div class="contact-card cc-vodafone">
+          <div class="cc-icon">📱</div>
+          <div class="cc-label">فودافون كاش</div>
+          <div class="cc-value">${data.vodafoneCash}</div>
+          <div class="cc-actions">
+            <button class="cc-btn primary" onclick="copyText('${data.vodafoneCash}')">📋 نسخ الرقم</button>
+          </div>
+        </div>`;
+    }
+
+    if (data.etisalatCash) {
+      html += `
+        <div class="contact-card cc-etisalat">
+          <div class="cc-icon">📲</div>
+          <div class="cc-label">إتصالات كاش</div>
+          <div class="cc-value">${data.etisalatCash}</div>
+          <div class="cc-actions">
+            <button class="cc-btn primary" onclick="copyText('${data.etisalatCash}')">📋 نسخ الرقم</button>
+          </div>
+        </div>`;
+    }
+
+    return html || '<p style="color:var(--ink-soft)">لا توجد وسائل تواصل مضافة.</p>';
+  }
+
+  function buildPlans(plans) {
+    return plans.map((p, i) => `
+      <div class="plan-card ${i === plans.length - 1 && plans.length > 1 ? 'featured' : ''}">
+        <div class="plan-label">${p.label}</div>
+        <div class="plan-price">${p.price}</div>
+        <div class="plan-note">${p.note || ''}</div>
+      </div>`).join('');
+  }
+
+  function noDataHTML(icon, title, text) {
+    return `<div class="no-data"><div class="nd-icon">${icon}</div><h3>${title}</h3><p>${text}</p></div>`;
+  }
+
+  function openWhatsApp(n)  { window.open(`https://wa.me/${n}`, '_blank'); }
+  function openInstapay(u)  { window.open(`https://www.instapay.eg/p/${u}`, '_blank'); }
+
+  let toastTimer;
+  function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const t = document.getElementById('toast');
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    });
+  }
+
+</script>
+</body>
+</html>

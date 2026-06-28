@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة طرق الدفع - لوحة المدرس</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+
+  .pay-hero {
+    background: linear-gradient(135deg, var(--teal-deep), var(--teal));
+    border-radius: 22px; padding: 32px 36px; color: #fff;
+    position: relative; overflow: hidden; margin-bottom: 28px;
+  }
+  .pay-hero::before {
+    content: '💳'; position: absolute;
+    left: 30px; top: 50%; transform: translateY(-50%);
+    font-size: 80px; opacity: .12;
+  }
+  .pay-hero h2 { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
+  .pay-hero p  { opacity: .85; font-size: 14px; }
+
+  .section-title {
+    font-size: 16px; font-weight: 900; color: var(--teal-deep);
+    margin: 28px 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ===== Contact fields grid ===== */
+  .contact-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .cf-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .cf-card label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; color: var(--teal-deep);
+    margin-bottom: 10px;
+  }
+  .cf-card label .lbadge {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .badge-wa  { background: linear-gradient(135deg,#25d366,#128c7e); }
+  .badge-ip  { background: linear-gradient(135deg,#7b2ff7,#4a00e0); }
+  .badge-vf  { background: linear-gradient(135deg,#e60000,#a00); }
+  .badge-et  { background: linear-gradient(135deg,#ff6000,#c84b00); }
+
+  /* ===== Plans builder ===== */
+  .plans-list { display: flex; flex-direction: column; gap: 12px; }
+  .plan-row {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .plan-row .field { margin: 0; }
+  .plan-row .field input { padding: 10px 12px; }
+  .remove-plan-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--coral); font-size: 18px; padding: 4px;
+    border-radius: 8px; transition: background .15s;
+  }
+  .remove-plan-btn:hover { background: rgba(224,98,62,.1); }
+
+  .add-plan-btn {
+    width: 100%; padding: 12px 0; border-radius: 12px;
+    border: 1.5px dashed var(--line); background: transparent;
+    color: var(--teal-deep); font-weight: 700; cursor: pointer;
+    font-family: 'Cairo', sans-serif; font-size: 14px;
+    margin-top: 10px; transition: background .15s;
+  }
+  .add-plan-btn:hover { background: var(--bg-soft); }
+
+  /* ===== Note field ===== */
+  .note-field textarea {
+    width: 100%; padding: 14px 16px; border-radius: 14px;
+    border: 1.5px solid var(--line); background: var(--bg);
+    font-family: 'Tajawal', sans-serif; font-size: 14px; color: var(--ink);
+    outline: none; resize: vertical; min-height: 90px;
+    transition: border-color .2s;
+  }
+  .note-field textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 4px rgba(31,111,92,.1);
+  }
+
+  /* ===== Preview box ===== */
+  .preview-banner {
+    background: rgba(232,163,61,.08);
+    border: 1px solid var(--gold);
+    border-radius: 14px; padding: 14px 18px;
+    font-size: 13px; color: var(--teal-deep);
+    margin-bottom: 20px; display: flex; gap: 10px; align-items: center;
+  }
+
+  /* ===== Save bar ===== */
+  .save-bar {
+    position: sticky; bottom: 0; left: 0; right: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    padding: 14px 0 10px;
+    display: flex; gap: 12px; align-items: center;
+    margin-top: 32px;
+    z-index: 10;
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--teal-deep); color: #fff;
+    padding: 12px 28px; border-radius: 40px;
+    font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700;
+    box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    z-index: 9999; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .form-msg { margin-top: 12px; }
+
+  @media (max-width: 600px) {
+    .plan-row { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+    .plan-row > *:last-child { grid-column: 1 / -1; justify-self: end; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient-bg">
+  <div class="blob ab1"></div>
+  <div class="blob ab2"></div>
+  <div class="blob ab3"></div>
+</div>
+
+<div class="toast" id="toast">✅ تم الحفظ!</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="mark">ن</div>لوحة المدرس</div>
+    <a class="nav-item" href="admin.html"><span class="ic">🏠</span><span>الرئيسية</span></a>
+    <a class="nav-item" href="admin-courses.html"><span class="ic">📚</span><span>الكورسات</span></a>
+    <a class="nav-item" href="admin-lessons.html"><span class="ic">🎥</span><span>الدروس</span></a>
+    <a class="nav-item" href="admin-quizzes.html"><span class="ic">📝</span><span>الاختبارات</span></a>
+    <a class="nav-item" href="admin-students.html"><span class="ic">👥</span><span>طلابي والنتائج</span></a>
+    <a class="nav-item active" href="admin-payment.html"><span class="ic">💳</span><span>طرق الدفع</span></a>
+    <a class="nav-item" href="admin-profile.html"><span class="ic">⚙️</span><span>الملف الشخصي</span></a>
+    <div class="sidebar-foot">
+      <button class="logout-btn" onclick="logout()"><span class="ic">🚪</span><span>تسجيل الخروج</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <h1>طرق الدفع</h1>
+          <div class="page-sub">إدارة وسائل الدفع والتواصل الخاصة بيك</div>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarChip">👨‍🏫</div>
+        <div class="info">
+          <b id="userName">...</b>
+          <span>مدرس</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="pageContent">
+      <div class="empty-state"><div class="ic">⏳</div><h3>جاري التحميل...</h3></div>
+    </div>
+  </div>
+</div>
+
+<script src="firebase-init.js"></script>
+<script src="auth.js"></script>
+<script src="teachers.js"></script>
+<script>
+
+  let currentProfile = null;
+  let planCounter = 0;
+
+  requireAuth(async (user, profile) => {
+    currentProfile = profile;
+    document.getElementById('userName').textContent = profile.name;
+    document.getElementById('avatarChip').textContent = profile.avatar || '👨‍🏫';
+    await loadPaymentData();
+  }, 'admin');
+
+  /* ─── Load existing data from Firestore ─── */
+  async function loadPaymentData() {
+    const wrap = document.getElementById('pageContent');
+    try {
+      const snap = await db.collection('teacherPayment').doc(currentProfile.teacherId).get();
+      const data = snap.exists ? snap.data() : {};
+      renderForm(data);
+    } catch(e) {
+      console.error(e);
+      wrap.innerHTML = `<div class="empty-state"><div class="ic">⚠️</div><h3>حدث خطأ</h3><p>تعذر تحميل البيانات، حاول تاني.</p></div>`;
+    }
+  }
+
+  /* ─── Render the form ─── */
+  function renderForm(data) {
+    const wrap = document.getElementById('pageContent');
+    wrap.innerHTML = `
+      <div class="pay-hero">
+        <h2>💳 إدارة طرق الدفع</h2>
+        <p>الطلاب بتوعك هيشوفوا البيانات دي في صفحة الدفع. غيّر وحفظ في أي وقت.</p>
+      </div>
+
+      <div class="preview-banner">
+        ℹ️ التعديلات بتظهر للطلاب فور الحفظ مباشرةً بدون ما تعمل حاجة تانية.
+      </div>
+
+      <!-- Contact channels -->
+      <div class="section-title">📞 وسائل التواصل والدفع</div>
+      <div class="contact-fields">
+
+        <div class="cf-card">
+          <label>
+            <div class="lbadge badge-wa">💬</div>
+            واتساب (بدون 0 في الأول)
+          </label>
+          <div class="field" style="margin:0;">
+            <input type="tel" id="fieldWhatsapp" placeholder="201XXXXXXXXX" value="${esc(data.whatsapp||'')}" dir="ltr">
+          </div>
+        </div>
+
+        <div class="cf-card">
+          <label>
+            <div class="lbadge badge-ip">💸</div>
+            رابط إنستاباي (اسم المستخدم بس)
+          </label>
+          <div class="field" style="margin:0;">
+            <input type="text" id="fieldInstapay" placeholder="username" value="${esc(data.instapay||'')}" dir="ltr">
+          </div>
+        </div>
+
+        <div class="cf-card">
+          <label>
+            <div class="lbadge badge-vf">📱</div>
+            فودافون كاش
+          </label>
+          <div class="field" style="margin:0;">
+            <input type="tel" id="fieldVodafone" placeholder="01XXXXXXXXX" value="${esc(data.vodafoneCash||'')}" dir="ltr">
+          </div>
+        </div>
+
+        <div class="cf-card">
+          <label>
+            <div class="lbadge badge-et">📲</div>
+            إتصالات كاش
+          </label>
+          <div class="field" style="margin:0;">
+            <input type="tel" id="fieldEtisalat" placeholder="01XXXXXXXXX" value="${esc(data.etisalatCash||'')}" dir="ltr">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Subscription plans -->
+      <div class="section-title">💰 خطط الاشتراك</div>
+      <div class="plans-list" id="plansList"></div>
+      <button class="add-plan-btn" onclick="addPlan()">➕ إضافة خطة اشتراك</button>
+
+      <!-- Note -->
+      <div class="section-title">⚠️ ملاحظة للطلاب (اختياري)</div>
+      <div class="note-field">
+        <textarea id="fieldNote" placeholder="مثال: برجاء إرسال صورة إيصال الدفع على الواتساب بعد الدفع.">${esc(data.note||'')}</textarea>
+      </div>
+
+      <!-- Save bar -->
+      <div class="save-bar">
+        <button class="btn btn-solid" id="saveBtn" onclick="saveData()" style="min-width:160px;">💾 حفظ التعديلات</button>
+        <div id="saveMsg" class="form-msg" style="margin:0;"></div>
+      </div>
+    `;
+
+    planCounter = 0;
+    const plans = data.plans || [];
+    if (plans.length === 0) {
+      addPlan(); // plan واحدة افتراضية
+    } else {
+      plans.forEach(p => addPlan(p));
+    }
+  }
+
+  /* ─── Plans ─── */
+  function addPlan(data) {
+    planCounter++;
+    const id = 'plan_' + planCounter;
+    const row = document.createElement('div');
+    row.className = 'plan-row';
+    row.dataset.pid = id;
+    row.innerHTML = `
+      <div class="field">
+        <label>التسمية</label>
+        <input type="text" class="p-label" placeholder="مثال: شهري" value="${esc(data?.label||'')}">
+      </div>
+      <div class="field">
+        <label>السعر</label>
+        <input type="text" class="p-price" placeholder="مثال: 150 جنيه" value="${esc(data?.price||'')}">
+      </div>
+      <div class="field">
+        <label>ملاحظة الخطة</label>
+        <input type="text" class="p-note" placeholder="مثال: للشهر الدراسي الكامل" value="${esc(data?.note||'')}">
+      </div>
+      <button type="button" class="remove-plan-btn" onclick="this.closest('.plan-row').remove()" title="حذف الخطة">🗑️</button>
+    `;
+    document.getElementById('plansList').appendChild(row);
+  }
+
+  /* ─── Save to Firestore ─── */
+  async function saveData() {
+    const btn = document.getElementById('saveBtn');
+    const msgEl = document.getElementById('saveMsg');
+    msgEl.className = 'form-msg';
+
+    // Collect plans
+    const plans = [];
+    document.querySelectorAll('.plan-row').forEach(row => {
+      const label = row.querySelector('.p-label').value.trim();
+      const price = row.querySelector('.p-price').value.trim();
+      const note  = row.querySelector('.p-note').value.trim();
+      if (label || price) plans.push({ label, price, note });
+    });
+
+    const payload = {
+      whatsapp:     document.getElementById('fieldWhatsapp').value.trim(),
+      instapay:     document.getElementById('fieldInstapay').value.trim(),
+      vodafoneCash: document.getElementById('fieldVodafone').value.trim(),
+      etisalatCash: document.getElementById('fieldEtisalat').value.trim(),
+      note:         document.getElementById('fieldNote').value.trim(),
+      plans,
+      teacherId:    currentProfile.teacherId,
+      updatedAt:    firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+
+    try {
+      await db.collection('teacherPayment')
+        .doc(currentProfile.teacherId)
+        .set(payload, { merge: true });
+
+      showToast('✅ تم حفظ طرق الدفع!');
+    } catch(e) {
+      console.error(e);
+      msgEl.textContent = '❌ حدث خطأ أثناء الحفظ، حاول تاني.';
+      msgEl.className = 'form-msg show error';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 حفظ التعديلات';
+    }
+  }
+
+  /* ─── Helpers ─── */
+  function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+</script>
+</body>
+</html>
